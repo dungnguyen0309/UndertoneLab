@@ -273,8 +273,8 @@ the chart's countries, and several controls behaved differently from page to pag
   (`analysis.term_regex`, tried in the same order as the scores, so the counts add up to them) and stores the
   totals in `un_term_counts` (migration 0003), served at `/api/un/terms`. The Dictionaries page has a second tab
   with a sortable table of the default words: times found and share of statements, filtered by list, each word
-  coloured like its highlight in a text. Until a database has the counts (before migration 0003 and the next
-  load), the endpoint returns an empty list that the CDN may not cache, and the tab says they are not loaded yet.
+  coloured like its highlight in a text. Until a database has the counts (until the next load), the endpoint
+  returns an empty list that the CDN may not cache, and the tab says they are not loaded yet.
 - Readable 3D labels: no 3D label is drawn under 11 CSS pixels. Before each draw the stage grows any label
   that the camera's distance or a small screen would shrink below that (`labels.keepLabelsReadable`), and returns
   it to its own size up close.
@@ -296,6 +296,7 @@ cases that cannot happen. The code is about 600 lines shorter; no page looks or 
   saving invalid dictionaries showed the same error twice; under reduced motion the flag line, the assembly hall and
   the rostrum redrew every frame; a sentence picked in the landscape scrolled smoothly even under reduced motion.
 - Kept on purpose: the `countries` table (only the pipeline writes it, but dropping it needs a migration on the live
-  database) and the `/api/un/terms` guard for a database without migration 0003 (until the live one is migrated).
+  database). The `/api/un/terms` guard for a database without migration 0003 went once the live one was migrated
+  (2 November).
 - The README's animation is a drawing of the Analyze page with the sample's real result, recorded frame by frame,
   not a screen recording, so it does not change when the app does.

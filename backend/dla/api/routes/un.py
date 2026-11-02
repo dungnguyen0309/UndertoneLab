@@ -6,7 +6,6 @@ import zlib
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import func, select
-from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 from ... import analysis, config, un_data
@@ -173,11 +172,7 @@ def ranking(year: int, metric: str = "tone_balance", db: Session = Depends(get_d
 def terms(response: Response, db: Session = Depends(get_db)):
     """How often each word of the default dictionaries occurs in all statements, most frequent first."""
     run = un_data.latest_run(db)
-    try:
-        rows = db.execute(select(UNTermCount).order_by(UNTermCount.hits.desc(), UNTermCount.term)).scalars().all()
-    except ProgrammingError:          # the table comes with migration 0003; a database without it has no counts yet
-        db.rollback()
-        rows = []
+    rows = db.execute(select(UNTermCount).order_by(UNTermCount.hits.desc(), UNTermCount.term)).scalars().all()
     if not rows:
         response.headers["Cache-Control"] = "no-store"     # counts arrive with the next load-un; never cache "none"
     return {"statements": run.speeches if run else 0, "first_year": run.first_year if run else None,

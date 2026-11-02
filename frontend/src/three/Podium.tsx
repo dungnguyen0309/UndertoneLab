@@ -7,16 +7,14 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
-  Raycaster,
   SRGBColorSpace,
-  Vector2,
 } from "three";
 import { useColorScheme } from "../lib/colors";
 import { shortName } from "../lib/format";
 import { createFlagPole, flagTexture } from "./flags";
 import { baseHeight, textSprite } from "./labels";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
+import { useStage } from "./useStage";
 
 interface Props {
   /** The year's top three, first place first. */
@@ -114,7 +112,7 @@ export default function Podium({ rows, format, onPick }: Props) {
     });
     stage.scene.add(group);
     stage.frame({ x: 1.0, y: 0.62 }, [0, 0.58, 0], [0, 0.2, 1]);
-    const controls = stage.controls!;
+    const controls = stage.controls;
     controls.minAzimuthAngle = -0.8;
     controls.maxAzimuthAngle = 0.8;
     controls.minPolarAngle = 0.8;
@@ -135,40 +133,10 @@ export default function Podium({ rows, format, onPick }: Props) {
   // A click or tap on a flag or step opens that country's speech
   useEffect(() => {
     if (!stage) return;
-    const el = stage.renderer.domElement;
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
-    const pick = (e: PointerEvent) => {
-      const rect = el.getBoundingClientRect();
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, stage.camera);
+    return pointerPicking(stage, (raycaster) => {
       const hit = raycaster.intersectObjects(targets.current.map((t) => t.mesh), false)[0];
-      const code = hit && targets.current.find((t) => t.mesh === hit.object)?.code;
-      el.style.cursor = code ? "pointer" : "grab";
-      return code;
-    };
-    let down: { x: number; y: number } | null = null;
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && !e.buttons) pick(e);
-    };
-    const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
-        const code = pick(e);
-        if (code) pickRef.current(code);
-      }
-      down = null;
-    };
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointerup", onUp);
-    return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointerup", onUp);
-    };
+      return hit && targets.current.find((t) => t.mesh === hit.object)?.code;
+    }, (code) => pickRef.current(code));
   }, [stage]);
 
   if (failed) return null;

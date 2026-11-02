@@ -9,9 +9,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
-  Raycaster,
   Sprite,
-  Vector2,
 } from "three";
 import type { Matrix } from "../api/types";
 import YearPlayer from "../components/YearPlayer";
@@ -20,8 +18,8 @@ import { shortName } from "../lib/format";
 import { createFlagPole, type FlagPole, flagTexture } from "./flags";
 import { speakerFlag, speakerName } from "../lib/history";
 import { baseHeight, textSprite } from "./labels";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
+import { useStage } from "./useStage";
 import { useTip } from "./useTip";
 
 export type FlagMode = "chosen" | "top" | "bottom";
@@ -55,7 +53,6 @@ interface PoleState {
   z: number;
   height: number;
   targetX: number;
-  targetZ: number;
   targetHeight: number;
 }
 
@@ -121,7 +118,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
       const k = stage.reducedMotion ? 1 : Math.min(1, delta * 6);
       for (const p of current.poles.values()) {
         p.x += (p.targetX - p.x) * k;
-        p.z += (p.targetZ - p.z) * k;
+        p.z -= p.z * k;
         p.height += (p.targetHeight - p.height) * k;
         p.pole.group.position.set(p.x, 0, p.z);
         p.plinth.position.set(p.x, 0.02, p.z);
@@ -130,7 +127,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
         p.value?.position.set(p.x, p.height + 0.14 - baseHeight(p.value) / 2, p.z);
         if (!stage.reducedMotion) p.pole.wave(seconds, 1);
       }
-      stage.invalidate();
+      if (!stage.reducedMotion) stage.invalidate();
     });
     return () => {
       stopWave();
@@ -143,30 +140,20 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
   useEffect(() => {
     const current = scene.current;
     if (!stage || !current) return;
-    const rows = 1;
-    const perRow = slots.length;
     const spacing = small ? 0.54 : 0.68;
     // A pole per delegation as it was that year: crossing 1991 swaps the Soviet Union's pole for Russia's
     const keyOf = (code: string) => `${code}|${speakerFlag(code, year)}`;
     const keep = new Set(slots.map((s) => keyOf(s.code)));
     for (const [code, p] of current.poles) {
       if (keep.has(code)) continue;
-      current.group.remove(p.pole.group, p.plinth, p.name);
-      if (p.value) current.group.remove(p.value);
-      const g = new Group();
-      g.add(p.pole.group, p.plinth, p.name, ...(p.value ? [p.value] : []));
-      disposeGroup(g);
+      disposeGroup(p.pole.group, p.plinth, p.name, ...(p.value ? [p.value] : []));
       current.poles.delete(code);
     }
     const ink = scheme === "dark" ? "#f1f2f3" : "#0f1c2b";
     // Long rows are shown from further away, so their labels are drawn larger to stay readable
     const labelSize = (small ? 0.12 : 0.1) * Math.max(1, Math.sqrt(slots.length / 5));
     slots.forEach((slot, i) => {
-      const row = Math.floor(i / perRow);
-      const col = i % perRow;
-      const countInRow = row === rows - 1 ? slots.length - perRow * (rows - 1) : perRow;
-      const targetX = (col - (countInRow - 1) / 2) * spacing + (row ? spacing / 2 : 0);   // back row staggered
-      const targetZ = -row * 0.9;
+      const targetX = (i - (slots.length - 1) / 2) * spacing;
       const key = keyOf(slot.code);
       let p = current.poles.get(key);
       if (!p) {
@@ -175,8 +162,8 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
           new MeshStandardMaterial({ color: scheme === "dark" ? 0x2a3f55 : 0xb8c4d0, roughness: 0.6 }));
         const name = textSprite(shortName(speakerName(slot.code, year, names[slot.code] ?? slot.code)), {
           color: ink, height: labelSize * 1.05, onTop: true });
-        p = { pole, plinth, name, value: null, valueText: "", labelY: -0.06, x: targetX, z: targetZ - 0.6,
-          height: 0.05, targetX, targetZ, targetHeight: 0.05 };
+        p = { pole, plinth, name, value: null, valueText: "", labelY: -0.06, x: targetX, z: -0.6,
+          height: 0.05, targetX, targetHeight: 0.05 };
         current.group.add(pole.group, plinth, name);
         current.poles.set(key, p);
         const fallback = chosen.find((c) => c.code === slot.code)?.color ?? "#5b6b7a";
@@ -187,7 +174,6 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
         });
       }
       p.targetX = targetX;
-      p.targetZ = targetZ;
       // Names hang just below the base and grow downward; on a phone or a long row every other name sits one line
       // lower, a drop that grows with the name
       p.labelY = -0.06 + baseHeight(p.name) / 2;
@@ -198,12 +184,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
       const text = slot.value === null ? (first < 0 || yearIndex < first ? "no statement yet" : "no statement")
         : format(slot.value);
       if (text !== p.valueText) {
-        if (p.value) {
-          current.group.remove(p.value);
-          const g = new Group();
-          g.add(p.value);
-          disposeGroup(g);
-        }
+        if (p.value) disposeGroup(p.value);
         p.value = textSprite(text, { color: ink, height: labelSize, weight: 500, onTop: true, anchor: "bottom" });
         current.group.add(p.value);
         p.valueText = text;
@@ -212,7 +193,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
 
     // The all-country average as a thin line across the row (named in the caption: a label in the scene ends up
     // behind whichever flag reaches that height)
-    const width = Math.max(1, perRow * spacing + 0.4);
+    const width = Math.max(1, slots.length * spacing + 0.4);
     current.avg.visible = average !== null;
     current.avg.scale.x = width;
     current.avg.position.set(0, heightOf(average), 0.25);
@@ -220,55 +201,20 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
     const tallest = Math.max(0.9, ...slots.map((sl) => heightOf(sl.value)), average === null ? 0 : heightOf(average));
     stage.frame({ x: width / 2 + 0.3, y: (tallest + 0.55) / 2 }, [0, tallest / 2 - 0.02, 0], [0, 0.22, 1],
       { smooth: true });
+    stage.invalidate();      // a smooth frame after the user moved the view starts no loop by itself
     // (heightOf depends on lo/hi, which change with the metric)
   }, [stage, slots, average, scheme, small, format, names, chosen, lo, hi]);
 
   // Pointer: hover (mouse) shows the value, a click or tap opens that country's speech
   useEffect(() => {
     if (!stage) return;
-    const el = stage.renderer.domElement;
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
-    const pick = (e: PointerEvent) => {
-      const current = scene.current;
-      if (!current) return undefined;
-      const rect = el.getBoundingClientRect();
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, stage.camera);
-      const targets = [...current.poles.entries()].flatMap(([key, p]) =>
+    return pointerPicking(stage, (raycaster) => {
+      const targets = [...(scene.current?.poles.entries() ?? [])].flatMap(([key, p]) =>
         p.pole.meshes.map((m) => ({ code: key.split("|")[0], m })));
       const hit = raycaster.intersectObjects(targets.map((t) => t.m), false)[0];
-      const code = hit ? targets.find((t) => t.m === hit.object)?.code : undefined;
-      tip.show(code ?? null, Math.max(4, Math.min(e.clientX - rect.left + 12, rect.width - 200)),
-        Math.max(4, Math.min(e.clientY - rect.top + 12, rect.height - 70)));
-      el.style.cursor = code ? "pointer" : "grab";
-      return code;
-    };
-    let down: { x: number; y: number } | null = null;
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && !e.buttons) pick(e);
-    };
-    const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
-        const code = pick(e);
-        if (code) pickRef.current(code);
-      }
-      down = null;
-    };
-    const onLeave = tip.hide;
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointerleave", onLeave);
-    return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointerleave", onLeave);
-    };
+      return hit ? targets.find((t) => t.m === hit.object)?.code : undefined;
+    }, (code) => pickRef.current(code), (code, x, y, rect) => tip.show(code ?? null,
+      Math.max(4, Math.min(x + 12, rect.width - 200)), Math.max(4, Math.min(y + 12, rect.height - 70))), tip.hide);
   }, [stage]);
 
   if (failed) return <p className="empty">This browser cannot show 3D graphics (WebGL is off).</p>;

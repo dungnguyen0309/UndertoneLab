@@ -1,4 +1,4 @@
-/** "a, b\nc" → ["a", "b", "c"] (same rule as the backend's parse_term_list). */
+/** "a, b\nc" → ["a", "b", "c"] */
 export function parseTerms(text: string): string[] {
   return text
     .split(/[,\n;]+/)

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll } from "./helpers";
+import { analyzeSample, expectNoHorizontalScroll } from "./helpers";
 
 test("the API is healthy and has UN data", async ({ request }) => {
   const response = await request.get("/api/health");
@@ -48,9 +48,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.waitForLoadState("networkidle");
       await check(path);
     }
-    await page.goto("/");
-    await page.getByRole("button", { name: "Use sample text" }).click();
-    await page.getByRole("button", { name: "Analyze" }).click();
+    await analyzeSample(page);
     await expect(page.getByTestId("highlighted-text")).toBeVisible();
     // The page scrolls smoothly to the results; mid-scroll the sticky header covers the buttons, so wait for it to stop
     await expect.poll(() => page.evaluate(() => new Promise<boolean>((done) => {

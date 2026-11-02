@@ -3,6 +3,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { findUv } from "../../scripts/uv.mjs";
 
 const backend = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "backend");
 const dbFile = join(backend, "..", "data", "e2e.sqlite3");
@@ -14,8 +15,7 @@ const env = {
   PYTHONIOENCODING: "utf-8",
 };
 
-const candidates = [["uv"], ...(process.platform === "win32" ? [["py", "-m", "uv"]] : []), ["python", "-m", "uv"]];
-const uv = candidates.find((c) => spawnSync(c[0], [...c.slice(1), "--version"], { stdio: "ignore" }).status === 0);
+const uv = findUv();
 if (!uv) throw new Error("uv not found");
 
 mkdirSync(dirname(dbFile), { recursive: true });

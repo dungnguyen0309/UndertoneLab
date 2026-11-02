@@ -1,6 +1,5 @@
 // Shapes returned by the FastAPI backend (see /api/docs).
 
-export type MetricId = string; // "tone_balance" | "hostility" | ... | "kw::<keyword>"
 export type Metrics = Record<string, number | null>;
 export type Span = [start: number, end: number, kind: "hostile" | "cooperative"];
 
@@ -230,9 +229,3 @@ export interface DocumentSummary {
   metrics: Metrics;
 }
 
-export interface Health {
-  status: string;
-  database: string;
-  un_data: { statements: number; countries: number; first_year: number; last_year: number; source: string } | null;
-  version: string;
-}

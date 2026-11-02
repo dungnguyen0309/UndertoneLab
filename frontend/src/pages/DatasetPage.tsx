@@ -9,9 +9,9 @@ import MetricSelect from "../components/MetricSelect";
 import TrendChart, { type ChartSeries } from "../components/TrendChart";
 
 const RhetoricSpace = lazy(() => import("../three/RhetoricSpace"));
-import { PALETTE, useColorScheme, useStableSlots } from "../lib/colors";
+import { useCountryColors } from "../lib/colors";
 import { rescoreAll, uploadDocuments, type UploadProgress } from "../lib/datasets";
-import { formatMetric, isKeywordMetric, metricLabel, plural, tickFormat } from "../lib/format";
+import { formatMetric, isKeywordMetric, KEYWORD_PREFIX, metricLabel, plural, tickFormat } from "../lib/format";
 import { errorText, useAsync, useDictionaries, useDocumentTitle, useMeta } from "../lib/hooks";
 import { storage } from "../lib/storage";
 import { joinTerms, parseTerms, sameTerms } from "../lib/terms";
@@ -59,7 +59,6 @@ function DatasetView({ dataset, rows, rowsError, refresh }: {
   dataset: Dataset; rows: YearlyRow[]; rowsError: string | null; refresh: () => void;
 }) {
   const meta = useMeta();
-  const scheme = useColorScheme();
   const navigate = useNavigate();
   const location = useLocation();
   const token = storage.token(dataset.id);
@@ -80,25 +79,19 @@ function DatasetView({ dataset, rows, rowsError, refresh }: {
   const countries = (chosen ?? byDocs.slice(0, 4).map(([c]) => c)).filter((c) => options.some((o) => o.code === c));
   const [metric, setMetric] = useState("tone_balance");
   const [compareUN, setCompareUN] = useState(false);
-  const slots = useStableSlots(countries);
-  const colorKey = countries.map((c) => `${c}=${PALETTE[scheme][slots[c] ?? 0]}`).join(",");
-  const colors = useMemo(() => Object.fromEntries(colorKey.split(",").filter(Boolean).map((pair) => pair.split("="))),
-    [colorKey]) as Record<string, string>;
-  const spaceSeries = useMemo(() => colorKey.split(",").filter(Boolean).map((pair) => {
-    const [c, color] = pair.split("=");
-    return {
-      key: c,
-      label: options.find((o) => o.code === c)?.name ?? c,
-      color,
-      points: rows.filter((r) => r.country === c).map((r) => ({
-        year: r.year, hostility: r.hostility as number | null, cooperation: r.cooperation as number | null })),
-    };
-  }), [colorKey, rows, options]);
+  const colors = useCountryColors(countries);
+  const spaceSeries = useMemo(() => Object.entries(colors).map(([c, color]) => ({
+    key: c,
+    label: options.find((o) => o.code === c)?.name ?? c,
+    color,
+    points: rows.filter((r) => r.country === c).map((r) => ({
+      year: r.year, hostility: r.hostility as number | null, cooperation: r.cooperation as number | null })),
+  })), [colors, rows, options]);
   const label = metricLabel(metric, meta.metrics);
 
   const unSummary = useAsync<UNSummary | null>(() => (compareUN ? api.un.summary() : Promise.resolve(null)), [compareUN]);
   const unComparable = dataset.uses_default_dictionaries
-    && (!isKeywordMetric(metric) || (unSummary.data?.keywords ?? []).includes(metric.slice(4)));
+    && (!isKeywordMetric(metric) || (unSummary.data?.keywords ?? []).includes(metric.slice(KEYWORD_PREFIX.length)));
   const unSeries = useAsync(
     () => (compareUN && unComparable && countries.length
       ? api.un.series({ countries, metric, average: false }) : Promise.resolve(null)),

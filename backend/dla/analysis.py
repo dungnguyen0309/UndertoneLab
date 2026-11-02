@@ -104,11 +104,6 @@ def count_terms(clean, compiled):
     return dict(Counter(terms[int(m.lastgroup[1:])] for m in regex.finditer(clean)))
 
 
-def parse_term_list(text):
-    """'a, b\\nc' → ['a', 'b', 'c'] (used for dictionary and keyword boxes)."""
-    return [t.strip() for t in re.split(r"[,\n;]+", text or "") if t.strip()]
-
-
 def normalize_terms(terms):
     """Clean a user-supplied term list: trim, drop empties and duplicates, keep the original order."""
     seen, out = set(), []

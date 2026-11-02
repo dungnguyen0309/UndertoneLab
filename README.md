@@ -5,6 +5,8 @@ state-media articles, and 80 years of UN General Debate statements (1946–2025)
 
 **Live app: https://undertonelab.vercel.app** · API documentation: https://undertonelab.vercel.app/api/docs
 
+![The Analyze page: the sample statement is analyzed, and the result places its tone balance among 1,935 UN General Debate statements](docs/analyze-demo.gif)
+
 ## What you can do
 
 | Page | What it does |

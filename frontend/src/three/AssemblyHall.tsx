@@ -11,11 +11,9 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
-  Raycaster,
   Shape,
   Sphere,
   type Sprite,
-  Vector2,
   Vector3,
 } from "three";
 import type { Matrix } from "../api/types";
@@ -26,8 +24,8 @@ import { createFlagPole, type FlagPole, flagTexture } from "./flags";
 import { speakerFlag, speakerName } from "../lib/history";
 import { baseHeight, textSprite } from "./labels";
 import { magnitude, scaleFor } from "./scales";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
+import { useStage } from "./useStage";
 import { useTip } from "./useTip";
 
 export type SeatOrder = "value" | "name";
@@ -268,7 +266,7 @@ export default function AssemblyHall({ matrix, metricLabel, format, year, onYear
         f.label.center.x = 0.5 + 0.5 * Math.sin(s.angle);
         if (!stage.reducedMotion) f.pole.wave(seconds, 0.8);
       }
-      if (moving || current.flags.size) stage.invalidate();
+      if (moving || (current.flags.size && !stage.reducedMotion)) stage.invalidate();
     });
 
     return () => {
@@ -284,7 +282,7 @@ export default function AssemblyHall({ matrix, metricLabel, format, year, onYear
     const outer = FRONT + (maxRows - 1) * ROW;
     stage.frame({ x: outer * Math.sin(SPAN / 2) + 0.2, y: (outer + 0.6) * 0.34 + 0.2 }, [0, 0.16, -outer / 2 + 0.05],
       [0, 0.95, 1]);
-    const controls = stage.controls!;
+    const controls = stage.controls;
     controls.minPolarAngle = 0.3;          // from above the hall down to eye level, never under the floor
     controls.maxPolarAngle = 1.4;
     controls.minAzimuthAngle = -1.3;
@@ -343,9 +341,7 @@ export default function AssemblyHall({ matrix, metricLabel, format, year, onYear
       for (const code of created) {
         const f = current.flags.get(code);
         if (!f) continue;
-        const g = new Group();
-        g.add(f.pole.group, f.label);
-        disposeGroup(g);
+        disposeGroup(f.pole.group, f.label);
         current.flags.delete(code);
       }
     };
@@ -354,49 +350,15 @@ export default function AssemblyHall({ matrix, metricLabel, format, year, onYear
   // Pointer: hover (mouse) shows the delegation, a click or tap opens its speech
   useEffect(() => {
     if (!stage) return;
-    const el = stage.renderer.domElement;
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
-    const pick = (e: PointerEvent) => {
+    return pointerPicking(stage, (raycaster) => {
       const current = scene.current;
       if (!current) return undefined;
-      const rect = el.getBoundingClientRect();
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, stage.camera);
       const flagMeshes = [...current.flags.values()].flatMap((f) => f.pole.meshes.map((m) => ({ m, index: f.index })));
       const hit = raycaster.intersectObjects([current.columns, current.desks, ...flagMeshes.map((f) => f.m)], false)
         .find((h) => h.instanceId === undefined || current.seats[h.instanceId].size > 0.5);
-      const index = hit ? hit.instanceId ?? flagMeshes.find((f) => f.m === hit.object)?.index : undefined;
-      tip.show(index ?? null, Math.max(4, Math.min(e.clientX - rect.left + 12, rect.width - 210)),
-        Math.max(4, Math.min(e.clientY - rect.top + 12, rect.height - 80)));
-      el.style.cursor = index !== undefined ? "pointer" : "grab";
-      return index;
-    };
-    let down: { x: number; y: number } | null = null;
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && !e.buttons) pick(e);
-    };
-    const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
-        const index = pick(e);
-        if (index !== undefined) pickRef.current(matrix.countries[index].code);
-      }
-      down = null;
-    };
-    const onLeave = tip.hide;
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointerleave", onLeave);
-    return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointerleave", onLeave);
-    };
+      return hit ? hit.instanceId ?? flagMeshes.find((f) => f.m === hit.object)?.index : undefined;
+    }, (index) => pickRef.current(matrix.countries[index].code), (index, x, y, rect) => tip.show(index ?? null,
+      Math.max(4, Math.min(x + 12, rect.width - 210)), Math.max(4, Math.min(y + 12, rect.height - 80))), tip.hide);
   }, [stage, matrix]);
 
   if (failed) return <p className="empty">This browser cannot show 3D graphics (WebGL is off).</p>;

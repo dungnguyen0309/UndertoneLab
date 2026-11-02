@@ -14,8 +14,8 @@ import {
 } from "three";
 import { useColorScheme } from "../lib/colors";
 import { textSprite } from "./labels";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen } from "./stage";
+import { useStage } from "./useStage";
 import { useTip } from "./useTip";
 
 const MAX_TILT = 0.38;          // beam angle (radians) when one pan holds every word
@@ -200,7 +200,7 @@ export default function BalanceScale({ hostile, cooperative, hostileTerms, coopT
 
     stage.scene.add(group);
     stage.frame({ x: 1.42, y: 1.16 }, [0, 1.08, 0], [0, 0.12, 1]);
-    const controls = stage.controls!;
+    const controls = stage.controls;
     controls.minAzimuthAngle = -0.9;
     controls.maxAzimuthAngle = 0.9;
     controls.minPolarAngle = 0.95;

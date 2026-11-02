@@ -17,8 +17,8 @@ import {
 } from "three";
 import { useColorScheme } from "../lib/colors";
 import { createFlagPole, flagTexture } from "./flags";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen } from "./stage";
+import { useStage } from "./useStage";
 
 interface Props {
   code: string;
@@ -137,8 +137,7 @@ export default function Rostrum({ code, name, year, session, speaking = false }:
     });
 
     stage.scene.add(group);
-    const controls = stage.controls!;
-    controls.enablePan = false;
+    const controls = stage.controls;
     controls.minAzimuthAngle = -0.7;      // turn left and right a little, never behind the wall
     controls.maxAzimuthAngle = 0.7;
     controls.minPolarAngle = 0.9;
@@ -156,7 +155,7 @@ export default function Rostrum({ code, name, year, session, speaking = false }:
         ring.position.z = mic.position.z + t * 0.22;
         (ring.material as MeshBasicMaterial).opacity = 0.6 * (1 - t);
       });
-      stage.invalidate();
+      if (!stage.reducedMotion) stage.invalidate();
     });
     return () => {
       cancelled = true;

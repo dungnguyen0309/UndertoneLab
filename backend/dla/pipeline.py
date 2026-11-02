@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from . import analysis, un_data
 from .config import DATA_DIR
-from .countries import country_name
+from .countries import DEMO_NAMES, country_name
 from .models import Country, PipelineRun, UNCountryYear, UNKeywordRate, UNSentence, UNTermCount, UNText
 
 UNGDC_DOI = "doi:10.7910/DVN/0TJX8Y"
@@ -48,10 +48,7 @@ class PipelineError(RuntimeError):
 
 
 def log(message):
-    try:
-        print(message, flush=True)
-    except UnicodeEncodeError:          # e.g. a Windows console without UTF-8: drop the symbols
-        print(message.encode("ascii", "ignore").decode().strip(), flush=True)
+    print(message, flush=True)
 
 
 # ── Download & verify ─────────────────────────────────────────────────────────────────────────
@@ -123,7 +120,10 @@ def verify(archive: Path, info=None):
         log("! Could not get the checksum from Dataverse; continuing without verification.")
         return None
     actual = md5sum(archive)
-    if info["filename"] == archive.name and info["md5"] and actual != info["md5"]:
+    if info["filename"] != archive.name or not info["md5"]:
+        log(f"! {archive.name} is not the file Dataverse lists ({info['filename']}); checksum not verified.")
+        return actual
+    if actual != info["md5"]:
         raise PipelineError(f"{archive.name} is corrupt or modified: MD5 {actual} ≠ {info['md5']}.")
     log(f"✔ Checksum verified against Dataverse (version {info['version']}).")
     return actual
@@ -331,7 +331,7 @@ def run(session: Session, archive: Path | None = None, workers=None, use_cache=T
 
 
 # ── Demo data (tests and local development only) ──────────────────────────────────────────────
-DEMO_COUNTRIES = ["VLD", "ORS", "FRD", "SYL", "BOR"]
+DEMO_COUNTRIES = list(DEMO_NAMES)
 _DEMO_SENTENCES = {
     "hostile": ["We condemn the illegal sanctions and the aggression against our sovereign people.",
                 "Hegemony and interference in our internal affairs are a threat to every nation.",
@@ -359,11 +359,6 @@ def demo_statements(first_year=2000, last_year=2025, seed=7):
             text = "\n".join(" ".join(parts[i:i + 6]) for i in range(0, len(parts), 6))
             statements.append((country, year - 1945, year, text))
     return statements
-
-
-def demo_results(first_year=2000, last_year=2025, seed=7):
-    """Synthetic statements for fictional countries, scored by the real pipeline code."""
-    return [score_statement(s) for s in demo_statements(first_year, last_year, seed)]
 
 
 def seed_demo(session: Session):

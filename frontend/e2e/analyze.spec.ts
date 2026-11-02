@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll, watchErrors } from "./helpers";
+import { analyzeSample, expectNoHorizontalScroll, watchErrors } from "./helpers";
 
 test("analyzes the sample text", async ({ page }) => {
   const noErrors = watchErrors(page);
-  await page.goto("/");
-  await page.getByRole("button", { name: "Use sample text" }).click();
-  await page.getByRole("button", { name: "Analyze" }).click();
+  await analyzeSample(page);
 
   await expect(page.getByTestId("metric-tone_balance")).toContainText(/[+−]\d\.\d\d/);
   await expect(page.getByTestId("baseline-sentence")).toContainText(/hostile words more often than/);

@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll, watchErrors } from "./helpers";
+import { analyzeSample, expectNoHorizontalScroll, watchErrors } from "./helpers";
 
 test("the analysis shows a 3D sentence landscape", async ({ page }) => {
   const noErrors = watchErrors(page);
-  await page.goto("/");
-  await page.getByRole("button", { name: "Use sample text" }).click();
-  await page.getByRole("button", { name: "Analyze" }).click();
+  await analyzeSample(page);
   await expect(page.locator('.landscape3d[data-ready="true"] canvas')).toBeVisible();
   await expect(page.locator('.balance3d[data-ready="true"] canvas')).toBeVisible();
   await expect(page.getByText(/Each block is one word/)).toBeVisible();
@@ -17,7 +15,6 @@ test("the analysis shows a 3D sentence landscape", async ({ page }) => {
 test("the 3D flag line plays through the years and switches views", async ({ page }) => {
   const noErrors = watchErrors(page);
   await page.goto("/un?v=year");
-  await expect(page.locator(".globe3d")).toHaveCount(0);                // the big globe is gone
   const flags = page.locator('.flags3d[data-ready="true"]');
   await expect(flags.locator("canvas")).toBeVisible();
   const yearLabel = page.locator(".view3d-year");

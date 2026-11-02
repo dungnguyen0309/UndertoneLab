@@ -15,16 +15,14 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
-  Raycaster,
   SphereGeometry,
-  Vector2,
   Vector3,
 } from "three";
 import { useColorScheme } from "../lib/colors";
 import { createFlagPole, flagTexture } from "./flags";
 import { textSprite } from "./labels";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
+import { useStage } from "./useStage";
 import { useTip } from "./useTip";
 
 export interface SpaceSeries {
@@ -189,44 +187,13 @@ export default function RhetoricSpace({ series, onPick }: Props) {
     stage.invalidate();
 
     // Picking: hover with a mouse, tap or click to choose
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
-    const el = stage.renderer.domElement;
-    const pick = (e: PointerEvent) => {
-      const rect = el.getBoundingClientRect();
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, stage.camera);
+    const stopPicking = pointerPicking(stage, (raycaster) => {
       const hit = raycaster.intersectObject(all, false)[0];
-      const meta = hit?.instanceId !== undefined ? metas[hit.instanceId] : undefined;
-      tip.show(meta ?? null, Math.max(4, Math.min(e.clientX - rect.left + 12, rect.width - 200)),
-        Math.max(4, Math.min(e.clientY - rect.top + 12, rect.height - 80)) + 34);
-      el.style.cursor = meta ? "pointer" : "grab";
-      return meta;
-    };
-    let down: { x: number; y: number } | null = null;
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && !e.buttons) pick(e);
-    };
-    const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
-        const meta = pick(e);
-        if (meta) pickRef.current?.(meta.key, meta.year);
-      }
-      down = null;
-    };
-    const onLeave = tip.hide;
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointerleave", onLeave);
+      return hit?.instanceId !== undefined ? metas[hit.instanceId] : undefined;
+    }, (meta) => pickRef.current?.(meta.key, meta.year), (meta, x, y, rect) => tip.show(meta ?? null,
+      Math.max(4, Math.min(x + 12, rect.width - 200)), Math.max(4, Math.min(y + 12, rect.height - 80)) + 34), tip.hide);
     return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointerleave", onLeave);
+      stopPicking();
       cancelled = true;
       stopWave();
       disposeGroup(group);

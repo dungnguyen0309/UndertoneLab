@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalScroll, watchErrors } from "./helpers";
+import { analyzeSample, expectNoHorizontalScroll, watchErrors } from "./helpers";
 
 /** A silent stand-in for the browser's voice: each utterance "ends" after a moment, and the page keeps what it said. */
 async function fakeVoice(page: Page, ms = 400) {
@@ -91,9 +91,7 @@ test("listens to a UN speech at the rostrum, and jumps to a notable sentence", a
 test("listens to an analyzed text, starting from a tapped sentence", async ({ page }) => {
   const noErrors = watchErrors(page);
   await fakeVoice(page);
-  await page.goto("/");
-  await page.getByRole("button", { name: "Use sample text" }).click();
-  await page.getByRole("button", { name: "Analyze" }).click();
+  await analyzeSample(page);
   const text = page.getByTestId("highlighted-text");
   await expect(text.locator("p")).toHaveCount(3);                  // the sample's three paragraphs
   await page.getByRole("button", { name: "Listen", exact: true }).click();

@@ -1,8 +1,7 @@
 import { PerspectiveCamera, Scene, Sprite } from "three";
-import { ISO_ALPHA2, ISO_NUMERIC } from "./isoCodes";
+import { ISO_ALPHA2 } from "./isoCodes";
 import { keepLabelsReadable, MIN_LABEL_PX } from "./labels";
 import { magnitude, NO_DATA, scaleFor } from "./scales";
-import { lonLatToVector3 } from "./stage";
 
 describe("colour scales", () => {
   it("tone balance diverges from grey: red when confrontational, blue when conciliatory", () => {
@@ -40,19 +39,10 @@ describe("colour scales", () => {
   });
 });
 
-describe("globe geometry", () => {
-  it("places longitude/latitude on the sphere (north pole up)", () => {
-    for (const [lon, lat] of [[0, 0], [105.8, 21.0], [-74, 40.7], [151.2, -33.9]]) {
-      expect(lonLatToVector3(lon, lat, 2).length()).toBeCloseTo(2);
-    }
-    expect(lonLatToVector3(0, 90, 1).y).toBeCloseTo(1);
-  });
-
-  it("maps the map's ISO numeric codes to the corpus' alpha-3 codes", () => {
-    expect(ISO_NUMERIC["704"]).toBe("VNM");
-    expect(ISO_NUMERIC["840"]).toBe("USA");
-    expect(ISO_NUMERIC["643"]).toBe("RUS");
+describe("flag codes", () => {
+  it("maps the corpus' alpha-3 codes to flag-icons' alpha-2 names", () => {
     expect(ISO_ALPHA2.VNM).toBe("vn");
+    expect(ISO_ALPHA2.EU).toBe("eu");
   });
 });
 

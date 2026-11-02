@@ -20,10 +20,10 @@ interface LabelSize {
 
 /** A text label that always faces the camera. `height` is its size in scene units. With `anchor: "bottom"` the
  *  label's position is its bottom edge, so it grows upward when keepLabelsReadable enlarges it. */
-export function textSprite(text: string, options: { color?: string; height?: number; weight?: number; font?: string;
+export function textSprite(text: string, options: { color?: string; height?: number; weight?: number;
   onTop?: boolean; anchor?: "bottom" } = {}) {
   const fontSize = 64;
-  const font = `${options.weight ?? 400} ${fontSize}px ${options.font ?? '"Jost Variable", Jost, sans-serif'}`;
+  const font = `${options.weight ?? 400} ${fontSize}px "Jost Variable", Jost, sans-serif`;
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = font;
   const width = Math.ceil(measure.measureText(text).width) + 16;

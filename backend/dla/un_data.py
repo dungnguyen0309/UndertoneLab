@@ -97,10 +97,5 @@ def tone_histogram(values):
     return counts
 
 
-def hostility_share_below(base, hostility):
-    """Share of baseline statements less hostile than the given value."""
-    return share_below(base, "hostility", hostility)
-
-
 def clear_cache():
     _baseline_cache.clear()

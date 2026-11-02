@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 // In development the FastAPI backend runs on :8020 and Vite forwards /api to it,
 // so the browser sees one origin, exactly like on Vercel.
-const apiTarget = process.env.API_URL ?? `http://127.0.0.1:${process.env.API_PORT ?? "8020"}`;
+const apiTarget = `http://127.0.0.1:${process.env.API_PORT ?? "8020"}`;
 
 export default defineConfig({
   plugins: [react()],

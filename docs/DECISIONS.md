@@ -278,3 +278,24 @@ the chart's countries, and several controls behaved differently from page to pag
 - Readable 3D labels: no 3D label is drawn under 11 CSS pixels. Before each draw the stage grows any label
   that the camera's distance or a small screen would shrink below that (`labels.keepLabelsReadable`), and returns
   it to its own size up close.
+
+## 24. A simplicity pass over all the code
+Every file was read for code nothing uses, options nobody passes, copies of the same logic and error handling for
+cases that cannot happen. The code is about 600 lines shorter; no page looks or behaves differently except where noted.
+- Removed: leftovers of the globe (the numeric ISO table, `lonLatToVector3`), five `createStage` options and the
+  "no controls" path, the sphere mode of `frame()`, FlagLine's one-row "multi-row" layout, a never-passed font
+  option, unused functions (`demo_results`, `hostility_share_below`, `parse_term_list`, `compactNumber`,
+  `api.health`), ORM back-references nothing reads, a migrations branch for a connection nobody passes, an encoding
+  fallback the CLI already covers, 8 CSS rules that matched nothing and 5 custom properties nothing read.
+- Shared once instead of copied: 3D pointer picking (`stage.pointerPicking`, was five copies), GPU cleanup
+  (`stage.disposeGroup`, was two), the media-query hook and the reduced-motion scroll check (`lib/media.ts`), the
+  country colour map (`useCountryColors`), the default dictionaries' regexes in the UN routes, the keyword prefix,
+  `findUv` in the e2e backend and the "analyze the sample" step in the e2e specs.
+- Fixed on the way: the pipeline said "Checksum verified" when it had compared nothing; while the year player loads
+  the next year, the ranking table showed the old rows under the new year, so a click could open the wrong speech;
+  saving invalid dictionaries showed the same error twice; under reduced motion the flag line, the assembly hall and
+  the rostrum redrew every frame; a sentence picked in the landscape scrolled smoothly even under reduced motion.
+- Kept on purpose: the `countries` table (only the pipeline writes it, but dropping it needs a migration on the live
+  database) and the `/api/un/terms` guard for a database without migration 0003 (until the live one is migrated).
+- The README's animation is a drawing of the Analyze page with the sample's real result, recorded frame by frame,
+  not a screen recording, so it does not change when the app does.

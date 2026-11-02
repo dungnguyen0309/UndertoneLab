@@ -1,5 +1,4 @@
 import { type RefObject, useEffect, useState } from "react";
-import type { Group, Material, Mesh, Texture } from "three";
 import { createStage, type Stage, webglAvailable } from "./stage";
 
 /** Create a three.js stage in a container for the lifetime of a component. */
@@ -21,18 +20,4 @@ export function useStage(ref: RefObject<HTMLDivElement | null>, options: Paramet
     // the options are fixed for a component's lifetime
   }, [ref]);
   return { stage, failed };
-}
-
-/** Remove a group from its parent and free its GPU memory. */
-export function disposeGroup(group: Group) {
-  group.removeFromParent();
-  group.traverse((object) => {
-    const mesh = object as Mesh;
-    mesh.geometry?.dispose();
-    for (const material of ([] as (Material | undefined)[]).concat(mesh.material as Material | Material[])) {
-      if (!material) continue;
-      for (const value of Object.values(material)) if ((value as Texture)?.isTexture) (value as Texture).dispose();
-      material.dispose();
-    }
-  });
 }

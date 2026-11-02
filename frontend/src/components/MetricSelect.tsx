@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { metricLabel } from "../lib/format";
+import { KEYWORD_PREFIX, metricLabel } from "../lib/format";
 import { useMeta } from "../lib/hooks";
 
 /** The five tone metrics plus any keyword rates available for the data being shown. */
@@ -17,7 +17,7 @@ export default function MetricSelect({ value, onChange, keywords }: {
         </optgroup>
         {keywords.length > 0 && (
           <optgroup label="Keywords (per 1,000 words)">
-            {keywords.map((k) => <option key={k} value={`kw::${k}`}>{metricLabel(`kw::${k}`, meta.metrics)}</option>)}
+            {keywords.map((k) => <option key={k} value={`${KEYWORD_PREFIX}${k}`}>{metricLabel(`${KEYWORD_PREFIX}${k}`, meta.metrics)}</option>)}
           </optgroup>
         )}
       </select>

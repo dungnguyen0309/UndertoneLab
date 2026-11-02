@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type Ref, type RefObject } from "react";
 import type { Reading, ReadingSentence } from "../api/types";
+import { scrollBehavior } from "../lib/media";
 import { RATES, voiceLabel, type Speech } from "../lib/speech";
 import { HighlightedText } from "./common";
 import { PauseIcon, PlayIcon, StopIcon } from "./icons";
@@ -110,8 +111,7 @@ export function ReadingText({ reading, current, onPick, label, testId }: {
     const r = el.getBoundingClientRect();
     const b = c.getBoundingClientRect();
     if (r.top >= b.top && r.bottom <= b.bottom) return;
-    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    c.scrollTo({ top: c.scrollTop + r.top - b.top - b.height / 3, behavior: smooth ? "smooth" : "auto" });
+    c.scrollTo({ top: c.scrollTop + r.top - b.top - b.height / 3, behavior: scrollBehavior() });
   }, [current]);
   let n = 0;
   return (

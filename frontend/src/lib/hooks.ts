@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { ApiError } from "../api/client";
 import type { Meta } from "../api/types";
 import { storage, type CustomDictionaries, type SavedDataset } from "./storage";
 
@@ -44,7 +43,6 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]): AsyncState
 }
 
 export function errorText(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
   if (err instanceof Error) return err.message;
   return "Something went wrong.";
 }

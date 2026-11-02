@@ -8,9 +8,10 @@ import { ListenBar, MiniPlayer, NowReading, ReadingText, useFlatReading } from "
 import MetricCards from "../components/MetricCards";
 import MetricSelect from "../components/MetricSelect";
 import TrendChart from "../components/TrendChart";
-import { PALETTE, useColorScheme, useStableSlots } from "../lib/colors";
-import { fixed, formatDelta, formatMetric, metricLabel, plural, tickFormat } from "../lib/format";
+import { PALETTE, useColorScheme, useCountryColors } from "../lib/colors";
+import { fixed, formatDelta, formatMetric, KEYWORD_PREFIX, metricLabel, plural, tickFormat } from "../lib/format";
 import { useAsync, useDocumentTitle, useMeta } from "../lib/hooks";
+import { scrollBehavior } from "../lib/media";
 import { speakerFlag, speakerName } from "../lib/history";
 import { useSpeech } from "../lib/speech";
 
@@ -74,11 +75,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
     setParams(next, { replace: true });
   };
 
-  const slots = useStableSlots(countries);
-  // Same object while the countries and theme stay the same, so the 3D views do not redraw needlessly.
-  const colorKey = countries.map((c) => `${c}=${PALETTE[scheme][slots[c] ?? 0]}`).join(",");
-  const colors = useMemo(() => Object.fromEntries(colorKey.split(",").filter(Boolean).map((pair) => pair.split("="))),
-    [colorKey]) as Record<string, string>;
+  const colors = useCountryColors(countries);
   const names = useMemo(() => Object.fromEntries(summary.countries.map((c) => [c.code, c.name])), [summary]);
   const label = metricLabel(metric, meta.metrics);
 
@@ -108,8 +105,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
     [countries.join(","), start, end],
   );
 
-  const chosenFlags = useMemo(() => countries.map((code) => ({ code, color: colors[code] })),
-    [colorKey]);   // colorKey changes exactly when the countries or their colours do
+  const chosenFlags = useMemo(() => Object.entries(colors).map(([code, color]) => ({ code, color })), [colors]);
   const formatValue = useCallback((v: number) => formatMetric(metric, v), [metric]);
 
   const spaceSeries = useMemo(() => (space.data ? space.data[0].series.map((h) => {
@@ -358,10 +354,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-function scrollBehavior(): ScrollBehavior {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-}
-
 /** A year field that can be typed into. A complete year in range applies at once (so the arrow keys and the
  *  spinner still step); anything else is checked against the range on Enter or when the field is left. */
 function YearInput({ id, label, value, min, max, onCommit, invalid = false }: {
@@ -490,6 +482,7 @@ function RankingCard({ metric, year, names, onPick }: {
   const [showAll, setShowAll] = useState(false);
   const [filter, setFilter] = useState("");
   const ranking = useAsync(() => api.un.ranking(year, metric), [year, metric]);
+  const shownYear = ranking.data?.year ?? year;      // the old year's rows stay up while the next year loads
   const rows = (ranking.data?.rows ?? []).filter((r) =>
     !filter || `${r.name} ${r.country}`.toLowerCase().includes(filter.toLowerCase()));
   const visible = showAll || filter ? rows : rows.slice(0, 15);
@@ -498,8 +491,8 @@ function RankingCard({ metric, year, names, onPick }: {
   const hi = Math.max(0, ...values);
   const span = hi - lo || 1;
   const top = useMemo(() => (ranking.data?.rows ?? []).slice(0, 3)
-    .map((r) => ({ country: r.country, name: speakerName(r.country, year, names[r.country] ?? r.name), value: r.value,
-      flag: speakerFlag(r.country, year) })), [ranking.data, names, year]);
+    .map((r) => ({ country: r.country, name: speakerName(r.country, shownYear, names[r.country] ?? r.name),
+      value: r.value, flag: speakerFlag(r.country, shownYear) })), [ranking.data, names, shownYear]);
   const formatValue = useCallback((v: number) => formatMetric(metric, v), [metric]);
 
   return (
@@ -514,11 +507,11 @@ function RankingCard({ metric, year, names, onPick }: {
           </div>
         </div>
       </div>
-      <p className="muted small">{metricLabel(metric, meta.metrics)} in {year}, highest first. The year follows the
+      <p className="muted small">{metricLabel(metric, meta.metrics)} in {shownYear}, highest first. The year follows the
         player above.</p>
       {top.length > 0 && ranking.data && !meta.metrics.find((m) => m.id === metric)?.higher_is_worse && (
         <Suspense fallback={null}>
-          <Podium rows={top} format={formatValue} onPick={(code) => onPick(code, ranking.data!.year)} />
+          <Podium rows={top} format={formatValue} onPick={(code) => onPick(code, shownYear)} />
         </Suspense>
       )}
       {ranking.error ? <Notice kind="error" onRetry={ranking.reload}>{ranking.error}</Notice>
@@ -530,10 +523,10 @@ function RankingCard({ metric, year, names, onPick }: {
                 <thead><tr><th className="num">#</th><th>Country</th><th className="num">Value</th><th aria-hidden="true" /></tr></thead>
                 <tbody>
                   {visible.map((r) => (
-                    <tr key={r.country} className="clickable" onClick={() => onPick(r.country, year)}>
+                    <tr key={r.country} className="clickable" onClick={() => onPick(r.country, shownYear)}>
                       <td className="num">{r.rank}</td>
-                      <td><RowLink onClick={() => onPick(r.country, year)}>
-                        {speakerName(r.country, year, names[r.country] ?? r.name)}</RowLink></td>
+                      <td><RowLink onClick={() => onPick(r.country, shownYear)}>
+                        {speakerName(r.country, shownYear, names[r.country] ?? r.name)}</RowLink></td>
                       <td className="num">{formatMetric(metric, r.value)}</td>
                       <td className="bar-col" aria-hidden="true">
                         <span className="bar-track">
@@ -697,8 +690,8 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
               <summary>Keyword rates in this statement</summary>
               <ul className="terms">
                 {Object.entries(statement.data.keywords).map(([k, v]) => (
-                  <li key={k}>{metricLabel(`kw::${k}`, meta.metrics).replace(" per 1,000 words", "")}{" "}
-                    <span className="muted">{formatMetric(`kw::${k}`, v)}</span></li>
+                  <li key={k}>{metricLabel(`${KEYWORD_PREFIX}${k}`, meta.metrics).replace(" per 1,000 words", "")}{" "}
+                    <span className="muted">{formatMetric(`${KEYWORD_PREFIX}${k}`, v)}</span></li>
                 ))}
               </ul>
             </details>

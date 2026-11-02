@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -12,6 +12,7 @@ import {
 import type { Point } from "../api/types";
 import { AVERAGE_COLOR, useColorScheme } from "../lib/colors";
 import { fitWords } from "../lib/format";
+import { useMediaQuery } from "../lib/media";
 
 export interface ChartSeries {
   key: string;
@@ -58,7 +59,7 @@ export default function TrendChart({ series, average, averageLabel = "All-countr
   }, [series, average]);
 
   // Before the early return: hooks must run on every render, data or not
-  const narrow = useNarrow();
+  const narrow = useMediaQuery("(max-width: 640px)");   // the stylesheet's narrow layout
   const [picked, setPicked] = useState<string | null>(null);
   const hintId = useId();
   if (picked && !series.some((s) => s.key === picked)) setPicked(null);   // its country left the chart
@@ -261,18 +262,4 @@ function ChartTooltip({ active, payload, label, series, format, averageColor, av
       ))}
     </div>
   );
-}
-
-/** True on phone-width screens (the same breakpoint the stylesheet uses for its narrow layout). */
-function useNarrow() {
-  const query = "(max-width: 640px)";
-  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia?.(query);
-    if (!mq) return;
-    const onChange = () => setNarrow(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return narrow;
 }

@@ -9,6 +9,7 @@ import ToneRecord from "../components/ToneRecord";
 import SaveToDataset from "../components/SaveToDataset";
 import { downloadText, toCsv } from "../lib/csv";
 import { fixed, formatMetric, percent, plural } from "../lib/format";
+import { scrollBehavior } from "../lib/media";
 import { errorText, useDictionaries, useDocumentTitle, useMeta } from "../lib/hooks";
 import { useSpeech } from "../lib/speech";
 
@@ -55,8 +56,7 @@ export default function AnalyzePage() {
   // A new result: bring it into view and move focus to it, so keyboard and screen-reader users land on it too
   useEffect(() => {
     if (!result) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    results.current?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    results.current?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" });
     results.current?.focus({ preventScroll: true });
     setAnnouncement(`Results ready. ${verdict(result.metrics.tone_balance)}.`);
   }, [result]);
@@ -248,7 +248,7 @@ function Results({ result, text, sectionRef, onEdit }: {
         <Suspense fallback={<p className="muted">Loading 3D…</p>}>
           <SentenceLandscape sentences={result.sentences} onPick={(index) => {
             setFocus(index);
-            document.getElementById(`sentence-${index}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            document.getElementById(`sentence-${index}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
           }} />
         </Suspense>
       </div>

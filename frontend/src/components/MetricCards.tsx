@@ -7,45 +7,37 @@ import { useMeta } from "../lib/hooks";
 export default function MetricCards({ metrics, compareTo, compareLabel }: {
   metrics: Metrics; compareTo?: Metrics | null; compareLabel?: string;
 }) {
+  const meta = useMeta();
   return (
     <>
-      <Strip metrics={metrics} compareTo={compareTo} compareLabel={compareLabel} />
+      <div className="metrics">
+        {meta.metrics.map((m) => {
+          const value = metrics[m.id];
+          const base = compareTo?.[m.id];
+          let delta = null;
+          if (value !== null && value !== undefined && base !== null && base !== undefined) {
+            delta = (
+              <div className="delta">
+                {formatDelta(m.id, value - base)} <span className="muted">vs {compareLabel}</span>
+              </div>
+            );
+          }
+          return (
+            <div className="metric" key={m.id} data-testid={`metric-${m.id}`}>
+              <div className="label">{m.label}</div>
+              <div className="value">{formatMetric(m.id, value)}</div>
+              {delta}
+            </div>
+          );
+        })}
+      </div>
       <MetricDefinitions />
     </>
   );
 }
 
-function Strip({ metrics, compareTo, compareLabel }: {
-  metrics: Metrics; compareTo?: Metrics | null; compareLabel?: string;
-}) {
-  const meta = useMeta();
-  return (
-    <div className="metrics">
-      {meta.metrics.map((m) => {
-        const value = metrics[m.id];
-        const base = compareTo?.[m.id];
-        let delta = null;
-        if (value !== null && value !== undefined && base !== null && base !== undefined) {
-          delta = (
-            <div className="delta">
-              {formatDelta(m.id, value - base)} <span className="muted">vs {compareLabel}</span>
-            </div>
-          );
-        }
-        return (
-          <div className="metric" key={m.id} data-testid={`metric-${m.id}`}>
-            <div className="label">{m.label}</div>
-            <div className="value">{formatMetric(m.id, value)}</div>
-            {delta}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /** What each measure means, behind one disclosure. */
-export function MetricDefinitions() {
+function MetricDefinitions() {
   const meta = useMeta();
   return (
     <details className="table-view metric-definitions">

@@ -62,8 +62,7 @@ class UNCountryYear(CountsMixin, Base):
     vader_mean: Mapped[float | None] = mapped_column(Float)
     negative_share: Mapped[float | None] = mapped_column(Float)
 
-    keywords: Mapped[list["UNKeywordRate"]] = relationship(
-        back_populates="country_year", cascade="all, delete-orphan", passive_deletes=True)
+    keywords: Mapped[list["UNKeywordRate"]] = relationship()
 
 
 class UNKeywordRate(Base):
@@ -75,8 +74,6 @@ class UNKeywordRate(Base):
     keyword: Mapped[str] = mapped_column(String(80), primary_key=True)
     hits: Mapped[int] = mapped_column(Integer)
     per_1000: Mapped[float | None] = mapped_column(Float)
-
-    country_year: Mapped[UNCountryYear] = relationship(back_populates="keywords")
 
 
 class UNSentence(Base):
@@ -146,9 +143,6 @@ class Dataset(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-    documents: Mapped[list["Document"]] = relationship(
-        back_populates="dataset", cascade="all, delete-orphan", passive_deletes=True)
-
 
 class Document(CountsMixin, Base):
     __tablename__ = "documents"
@@ -164,5 +158,3 @@ class Document(CountsMixin, Base):
     keyword_counts: Mapped[dict[str, int]] = mapped_column(JSON, default=dict)
     scoring_version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-    dataset: Mapped[Dataset] = relationship(back_populates="documents")

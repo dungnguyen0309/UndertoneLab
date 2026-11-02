@@ -48,10 +48,6 @@ export function percent(share: number) {
   return `${Math.floor(share * 100)}%`;
 }
 
-export function compactNumber(n: number) {
-  return new Intl.NumberFormat("en", { notation: n >= 10_000 ? "compact" : "standard" }).format(n);
-}
-
 /** Axis tick formatting for a metric. */
 export function tickFormat(id: string) {
   return (value: number) => {

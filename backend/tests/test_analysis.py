@@ -30,9 +30,6 @@ class TestRegex:
     def test_special_characters_are_literal(self):
         assert an.build_regex(["a.b"]).findall("a.b axb") == ["a.b"]
 
-    def test_parse_term_list(self):
-        assert an.parse_term_list("a, b\nc;; d ,") == ["a", "b", "c", "d"]
-
     def test_normalize_terms_drops_duplicates_and_blanks(self):
         assert an.normalize_terms([" War ", "war", "*", "", "cold   war"]) == ["War", "cold war"]
 

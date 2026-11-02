@@ -18,6 +18,7 @@ from ..schemas import Matrix, Ranking, SeriesResponse, Shift, Statement, Stateme
 router = APIRouter(prefix="/un", tags=["un"], dependencies=[Depends(public_cache)])
 
 CountriesParam = Query(default="", description="Comma-separated country codes, e.g. RUS,USA,CHN")
+DEFAULT_RX = (analysis.build_regex(analysis.HOSTILE_TERMS), analysis.build_regex(analysis.COOPERATIVE_TERMS))
 
 
 def parse_countries(value: str, limit=config.MAX_CHART_COUNTRIES):
@@ -130,8 +131,6 @@ def statement(country: str, year: int, db: Session = Depends(get_db)):
     if row is None:
         raise HTTPException(status_code=404, detail=f"No General Debate statement for {code} in {year}.")
     counts = {c: getattr(row, c) for c in analysis.COUNT_COLUMNS}
-    hostile_rx, coop_rx = analysis.build_regex(analysis.HOSTILE_TERMS), analysis.build_regex(
-        analysis.COOPERATIVE_TERMS)
     sentences = db.scalars(select(UNSentence).where(UNSentence.country_code == code, UNSentence.year == year)
                            .order_by(UNSentence.id)).all()
     return {
@@ -143,7 +142,7 @@ def statement(country: str, year: int, db: Session = Depends(get_db)):
         "metrics": {m: getattr(row, m) for m in analysis.METRICS},
         "keywords": {k.keyword: k.per_1000 for k in sorted(row.keywords, key=lambda k: k.keyword)},
         "sentences": [{"kind": s.kind, "score": s.score, "position": s.position, "sentence": s.sentence,
-                       "highlights": analysis.highlight_spans(s.sentence, hostile_rx, coop_rx)}
+                       "highlights": analysis.highlight_spans(s.sentence, *DEFAULT_RX)}
                       for s in sentences],
     }
 
@@ -156,9 +155,7 @@ def statement_text(country: str, year: int, db: Session = Depends(get_db)):
     if row is None:
         raise HTTPException(status_code=404, detail=f"No full text of {code}'s {year} statement is loaded.")
     text = zlib.decompress(row.body).decode("utf-8")
-    hostile_rx, coop_rx = analysis.build_regex(analysis.HOSTILE_TERMS), analysis.build_regex(
-        analysis.COOPERATIVE_TERMS)
-    return {"country": code, "year": year, "reading": analysis.reading_text(text, hostile_rx, coop_rx)}
+    return {"country": code, "year": year, "reading": analysis.reading_text(text, *DEFAULT_RX)}
 
 
 @router.get("/ranking", response_model=Ranking)

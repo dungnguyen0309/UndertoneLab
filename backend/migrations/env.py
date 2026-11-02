@@ -22,10 +22,6 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    connectable = context.config.attributes.get("connection")
-    if connectable is not None:              # a connection passed in by dla.cli or the tests
-        _run(connectable)
-        return
     with get_engine().connect() as connection:
         _run(connection)
 

@@ -29,7 +29,7 @@ export default function DictionariesPage() {
 
   const save = () => {
     setUndo(null);
-    if (problem) return setMessage({ kind: "error", text: problem });
+    if (problem) return;
     const ok = storage.saveDictionaries(isDefault ? null : { hostile: hostileTerms, cooperative: coopTerms });
     setMessage(ok ? { kind: "info", text: isDefault ? "Using the default dictionaries." : "Saved in this browser." }
       : { kind: "error", text: "Your browser blocked saving (private mode?)." });

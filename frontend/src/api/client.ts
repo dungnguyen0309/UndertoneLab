@@ -5,7 +5,6 @@ import type {
   DocumentIn,
   DocumentSummary,
   ExtractedText,
-  Health,
   Matrix,
   Meta,
   Ranking,
@@ -83,7 +82,6 @@ export interface Dictionaries {
 }
 
 export const api = {
-  health: () => request<Health>("/health"),
   meta: () => request<Meta>("/meta"),
 
   analyze: (text: string, dictionaries: Dictionaries = {}, contextModel = false) =>

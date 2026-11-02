@@ -8,16 +8,14 @@ import {
   InstancedMesh,
   Matrix4,
   MeshStandardMaterial,
-  Raycaster,
-  Vector2,
 } from "three";
 import type { SentenceScore } from "../api/types";
 import { useColorScheme } from "../lib/colors";
 import { fixed } from "../lib/format";
 import { textSprite } from "./labels";
 import { scaleFor } from "./scales";
-import { isSmallScreen } from "./stage";
-import { disposeGroup, useStage } from "./useStage";
+import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
+import { useStage } from "./useStage";
 import { useTip } from "./useTip";
 
 interface Props {
@@ -40,8 +38,7 @@ export default function SentenceLandscape({ sentences, onPick }: Props) {
   const layout = useMemo(() => {
     const n = sentences.length;
     const cols = Math.min(30, Math.max(6, Math.ceil(Math.sqrt(n * 2.2))));
-    const rows = Math.ceil(n / cols);
-    return { cols, rows, width: cols * STEP, depth: rows * STEP };
+    return { cols, width: cols * STEP, depth: Math.ceil(n / cols) * STEP };
   }, [sentences.length]);
 
   useEffect(() => {
@@ -100,44 +97,13 @@ export default function SentenceLandscape({ sentences, onPick }: Props) {
     stage.frame({ x: width / 2 + STEP, y: (depth * 0.7 + maxBar * 0.75) / 2 + STEP / 2 }, [0, maxBar * 0.3, 0],
       [0, 0.95, 1]);
 
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
-    const el = stage.renderer.domElement;
-    const pick = (e: PointerEvent) => {
-      const rect = el.getBoundingClientRect();
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, stage.camera);
+    const stopPicking = pointerPicking(stage, (raycaster) => {
       const hit = raycaster.intersectObjects([hostile, coop, tiles], false)[0];
-      const s = hit?.instanceId !== undefined ? sentences[hit.instanceId] : undefined;
-      tip.show(s ?? null, Math.max(4, Math.min(e.clientX - rect.left + 12, rect.width - 260)),
-        Math.max(4, Math.min(e.clientY - rect.top + 12, rect.height - 110)) + 30);
-      el.style.cursor = s ? "pointer" : "grab";
-      return s;
-    };
-    let down: { x: number; y: number } | null = null;
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && !e.buttons) pick(e);
-    };
-    const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
-        const s = pick(e);
-        if (s) pickRef.current?.(s.index);
-      }
-      down = null;
-    };
-    const onLeave = tip.hide;
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointerleave", onLeave);
+      return hit?.instanceId !== undefined ? sentences[hit.instanceId] : undefined;
+    }, (s) => pickRef.current?.(s.index), (s, x, y, rect) => tip.show(s ?? null,
+      Math.max(4, Math.min(x + 12, rect.width - 260)), Math.max(4, Math.min(y + 12, rect.height - 110)) + 30), tip.hide);
     return () => {
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointerleave", onLeave);
+      stopPicking();
       disposeGroup(group);
       tip.hide();
     };

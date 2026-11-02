@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
+import { useMediaQuery } from "./media";
 
 // Categorical palette (validated for colour-vision deficiencies in both modes).
 // Slots are assigned in fixed order and stay with the country, never with its rank.
@@ -11,17 +12,7 @@ export const AVERAGE_COLOR = { light: "#898781", dark: "#a3a29b" };
 export type Scheme = "light" | "dark";
 
 export function useColorScheme(): Scheme {
-  const query = "(prefers-color-scheme: dark)";
-  const get = () => (typeof window !== "undefined" && window.matchMedia?.(query).matches ? "dark" : "light");
-  const [scheme, setScheme] = useState<Scheme>(get);
-  useEffect(() => {
-    const mq = window.matchMedia?.(query);
-    if (!mq) return;
-    const onChange = () => setScheme(mq.matches ? "dark" : "light");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return scheme;
+  return useMediaQuery("(prefers-color-scheme: dark)") ? "dark" : "light";
 }
 
 /** Keep each key's colour slot while keys are added or removed (colour follows the entity). */
@@ -42,4 +33,13 @@ export function useStableSlots(keys: string[]): Record<string, number> {
   const memory = useRef<Record<string, number>>({});
   memory.current = assignSlots(memory.current, keys);
   return memory.current;
+}
+
+/** Each country's chart colour. The same object while the countries and theme stay the same, so the 3D views do not
+ *  redraw needlessly. */
+export function useCountryColors(countries: string[]): Record<string, string> {
+  const scheme = useColorScheme();
+  const slots = useStableSlots(countries);
+  const key = countries.map((c) => `${c}=${PALETTE[scheme][slots[c] ?? 0]}`).join(",");
+  return useMemo(() => Object.fromEntries(key.split(",").filter(Boolean).map((pair) => pair.split("="))), [key]);
 }

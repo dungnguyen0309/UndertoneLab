@@ -2,10 +2,7 @@
    buttons, links and the header mark use the deeper blues, which pass WCAG AA. */
 :root {
   color-scheme: light;
-  --un: #009edb;
   --un-deep: #0072bc;
-  --un-deeper: #005a9c;
-  --navy: #0b2545;
   --plane: #f3f6f9;
   --surface: #ffffff;
   --surface-2: #eef3f8;
@@ -32,7 +29,6 @@
   --hostile-line: #c43d3c;
   --coop-bg: rgba(27, 175, 122, 0.22);
   --coop-line: #13805a;
-  --good: #006300;
   --bad: #b3261e;
   --warn-bg: #fff4d6;
   --warn-ink: #5c4300;
@@ -40,7 +36,6 @@
   --error-ink: #8a1c17;
   --info-bg: #e8f0fb;
   --info-ink: #1c3f6e;
-  --shadow: none;
   --selection: rgba(0, 158, 219, 0.24);
   --radius: 8px;
   /* Free stand-ins: Jost (Futura-like geometric sans, used at 300 like Europa Light) for text,
@@ -58,7 +53,6 @@
     --ink: #f1f2f3;
     --ink-2: #c6c9cd;
     --muted: #a4a8ae;
-    --axis: #898781;
     --grid: #2a2c2f;
     --border: rgba(255, 255, 255, 0.1);
     --accent: #4fb3ea;
@@ -70,13 +64,11 @@
     --footer-ink: #a4a8ae;
     --footer-link: #7cc8f0;
     --banner: #0b3d66;
-    --banner-ink: #ffffff;
     --banner-ink-2: #c3dff2;
     --hostile-bg: rgba(230, 103, 103, 0.3);
     --hostile-line: #e66767;
     --coop-bg: rgba(25, 158, 112, 0.32);
     --coop-line: #3cc293;
-    --good: #3cc23c;
     --bad: #ff8a80;
     --warn-bg: #3a2f10;
     --warn-ink: #f5d78a;
@@ -84,7 +76,6 @@
     --error-ink: #ffb4ab;
     --info-bg: #17222e;
     --info-ink: #b7d3f6;
-    --shadow: none;
     --selection: rgba(79, 179, 234, 0.34);
   }
 }
@@ -114,8 +105,7 @@ textarea {
 }
 
 /* Numbers line up in tables and metric cards */
-table,
-.metric .value {
+table {
   font-variant-numeric: tabular-nums;
 }
 
@@ -449,7 +439,6 @@ main.container {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   padding: 20px;
   margin-bottom: 20px;
   min-width: 0;
@@ -506,11 +495,6 @@ main.container {
 
 .small {
   font-size: 0.875rem;
-}
-
-.mono {
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.88em;
 }
 
 .visually-hidden {
@@ -919,24 +903,6 @@ select {
   color: var(--ink-2);
 }
 
-.delta.good {
-  color: var(--good);
-}
-
-.delta.bad {
-  color: var(--bad);
-}
-
-.delta.neutral {
-  color: var(--muted);
-}
-
-.metric .explain {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
 /* ── Highlighted text ───────────────────────────────────────────────────── */
 mark.hostile,
 mark.cooperative,
@@ -1022,10 +988,6 @@ mark.cooperative,
     text-decoration-color: var(--axis);
     text-underline-offset: 3px;
   }
-}
-
-details.full-speech .reading {
-  margin-top: 8px;
 }
 
 /* ── Listening ──────────────────────────────────────────────────────────── */
@@ -1145,11 +1107,6 @@ details.full-speech .reading {
   gap: 3px;
   font-size: inherit;
   vertical-align: baseline;
-}
-
-.listen-from .icon {
-  width: 11px;
-  height: 11px;
 }
 
 .legend-keys {
@@ -1286,13 +1243,6 @@ tr.clickable:active td {
   tr.clickable:hover td {
     background: var(--surface-2);
   }
-}
-
-.bar-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 160px;
 }
 
 .bar-col {

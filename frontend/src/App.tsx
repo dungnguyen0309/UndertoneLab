@@ -1,8 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router";
 import { api, withRetry } from "./api/client";
 import { Loading, Notice } from "./components/common";
 import { MetaContext, useAsync, useDocumentTitle } from "./lib/hooks";
+import { useSmoothWheel } from "./lib/media";
 import AnalyzePage from "./pages/AnalyzePage";
 
 // Pages with charts load on demand, so the first page appears quickly on phones.
@@ -13,19 +14,29 @@ const DictionariesPage = lazy(() => import("./pages/DictionariesPage"));
 const MethodPage = lazy(() => import("./pages/MethodPage"));
 
 const NAV = [
-  { to: "/", label: "Analyze a text", short: "Analyze", end: true },
-  { to: "/un", label: "UN General Debate", short: "UN Debate" },
-  { to: "/datasets", label: "My datasets", short: "Datasets" },
-  { to: "/dictionaries", label: "Dictionaries", short: "Dictionaries" },
-  { to: "/method", label: "Method", short: "Method" },
+  { to: "/", label: "Analyze a text", end: true },
+  { to: "/un", label: "UN General Debate" },
+  { to: "/datasets", label: "My datasets" },
+  { to: "/dictionaries", label: "Dictionaries" },
+  { to: "/method", label: "Method" },
 ];
 
 export default function App() {
   const meta = useAsync(() => withRetry(() => api.meta()), []);
+  useSmoothWheel();
+  // On phones the menu is a drawer under the header; on wider screens the same nav is a row and this stays unused
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeMenu = () => setMenuOpen(false);
   return (
     <BrowserRouter>
       <a className="skip-link" href="#main">Skip to content</a>
-      <header className="site-header">
+      <header className="site-header" onKeyDown={(e) => {
+        if (e.key === "Escape" && menuOpen) {
+          closeMenu();
+          menuButton.current?.focus();
+        }
+      }}>
         <div className="container">
           <NavLink to="/" className="brand">
             <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
@@ -38,13 +49,16 @@ export default function App() {
               <span className="brand-tag">Diplomatic language analyzer</span>
             </span>
           </NavLink>
-          <nav className="nav" aria-label="Main">
+          <button ref={menuButton} type="button" className="menu-button" aria-label="Menu" aria-expanded={menuOpen}
+            aria-controls="main-nav" onClick={() => setMenuOpen(!menuOpen)}>
+            <span className="menu-lines" aria-hidden="true"><span /><span /><span /></span>
+          </button>
+          <nav id="main-nav" className="nav" aria-label="Main" data-open={menuOpen || undefined}>
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end}>
-                <span className="nav-long">{n.label}</span><span className="nav-short">{n.short}</span>
-              </NavLink>
+              <NavLink key={n.to} to={n.to} end={n.end} onClick={closeMenu}>{n.label}</NavLink>
             ))}
           </nav>
+          {menuOpen && <div className="nav-scrim" onClick={closeMenu} />}
         </div>
       </header>
       <main id="main" className="container">
@@ -78,6 +92,7 @@ export default function App() {
             An independent research tool. Not affiliated with or endorsed by the United Nations.
           </span>
         </div>
+        <div className="footer-wordmark" aria-hidden="true" />
       </footer>
     </BrowserRouter>
   );

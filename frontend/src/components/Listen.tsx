@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Ref, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import type { Reading, ReadingSentence } from "../api/types";
 import { scrollBehavior } from "../lib/media";
 import { RATES, voiceLabel, type Speech } from "../lib/speech";
@@ -75,7 +76,8 @@ export function MiniPlayer({ speech, anchor, what }: {
   }, [active, anchor]);
   if (!active || !away) return null;
   const { status, current, total } = speech;
-  return (
+  // Rendered at the page root: a card that is animating (the scroll-in rise) would otherwise hold a fixed bar in place
+  return createPortal(
     <div className="mini-player" role="group" aria-label={`Reading ${what} aloud`}>
       {status === "playing" ? (
         <button type="button" className="btn small primary" onClick={speech.pause}><PauseIcon /> Pause</button>
@@ -84,7 +86,8 @@ export function MiniPlayer({ speech, anchor, what }: {
       )}
       <button type="button" className="btn small" onClick={speech.stop}><StopIcon /> Stop</button>
       <span className="listen-count">{(current + 1).toLocaleString("en")} / {total.toLocaleString("en")}</span>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

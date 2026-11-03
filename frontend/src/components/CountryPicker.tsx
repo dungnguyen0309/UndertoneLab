@@ -44,7 +44,7 @@ export default function CountryPicker({ options, value, onChange, max, colors, l
     if (!match) {
       const several = options.filter((o) => o.name.toLowerCase().includes(query)).map((o) => o.name);
       setNote(several.length > 1
-        ? `"${raw.trim()}" fits ${several.slice(0, 4).join(", ")}${several.length > 4 ? "…" : ""}. Pick one from the list.`
+        ? `"${raw.trim()}" matches ${several.slice(0, 4).join(", ")}${several.length > 4 ? "…" : ""}. Pick one from the list.`
         : `No country matches "${raw.trim()}".`);
       return;
     }

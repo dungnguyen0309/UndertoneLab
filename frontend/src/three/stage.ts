@@ -139,7 +139,18 @@ export function createStage(container: HTMLElement, options: Options = {}): Stag
   // never schedule a second loop. When nothing changes the loop stops (saves battery) until invalidate(),
   // a resize or the user touching the view starts it again.
   const loop = (now: number) => {
-    if (!visible || document.hidden) {
+    if (document.hidden) {
+      raf = 0;
+      return;
+    }
+    if (!visible) {
+      // Off screen, draw each change once (no frame callbacks or glide), so the view is never blank when it
+      // scrolls in, prints or is captured
+      if (dirty) {
+        dirty = false;
+        keepLabelsReadable(scene, camera, container.clientHeight);
+        renderer.render(scene, camera);
+      }
       raf = 0;
       return;
     }

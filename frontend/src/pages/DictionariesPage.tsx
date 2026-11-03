@@ -6,13 +6,13 @@ import { useDictionaries, useDocumentTitle, useMeta } from "../lib/hooks";
 import { storage } from "../lib/storage";
 import { checkTerms, joinTerms, parseTerms, sameTerms } from "../lib/terms";
 
-const TABS = [["edit", "Word lists"], ["counts", "How often they occur"]] as const;
+const TABS = [["edit", "Word lists"], ["counts", "Word counts"]] as const;
 
 export default function DictionariesPage() {
   const [params, setParams] = useSearchParams();
   const tab = params.get("v") === "counts" ? "counts" : "edit";
   const choose = (next: typeof tab) => setParams(next === "edit" ? {} : { v: next }, { replace: true });
-  useDocumentTitle(tab === "counts" ? "How often they occur · Dictionaries" : "Dictionaries");
+  useDocumentTitle(tab === "counts" ? "Word counts · Dictionaries" : "Dictionaries");
   const meta = useMeta();
   const current = useDictionaries();
   const [hostile, setHostile] = useState(joinTerms(current.hostile));
@@ -56,11 +56,7 @@ export default function DictionariesPage() {
     <>
       <div className="page-intro">
         <h1>Dictionaries</h1>
-        <p>
-          The word lists behind the hostility and cooperation scores. Adapt them to your research question: separate
-          terms with commas or new lines, and end a term with * to match any ending (sanction* → sanctions,
-          sanctioned).
-        </p>
+        <p>The word lists behind the hostility and cooperation scores.</p>
       </div>
       <div className="view-tabs" role="tablist" aria-label="Dictionaries" onKeyDown={(e) => {
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -78,23 +74,29 @@ export default function DictionariesPage() {
           <>
             <Notice kind={current.custom ? "warn" : "info"}>
               {current.custom
-                ? "You are using custom dictionaries. Texts are then not compared with UN speeches, which were scored with the defaults."
+                ? "You are using custom dictionaries. Your texts are not compared with UN speeches, which were scored with the defaults."
                 : "You are using the default dictionaries."}
             </Notice>
-            <div className="grid-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="grid-2 even">
               <div className="card">
                 <div className="field">
                   <label htmlFor="hostile-terms">Hostile words <span className="hint">({hostileTerms.length})</span></label>
-                  <textarea id="hostile-terms" rows={14} value={hostile} onChange={(e) => setHostile(e.target.value)} />
+                  <textarea id="hostile-terms" rows={14} value={hostile} aria-describedby="terms-hint"
+                    onChange={(e) => setHostile(e.target.value)} />
                 </div>
               </div>
               <div className="card">
                 <div className="field">
                   <label htmlFor="coop-terms">Cooperative words <span className="hint">({coopTerms.length})</span></label>
-                  <textarea id="coop-terms" rows={14} value={cooperative} onChange={(e) => setCooperative(e.target.value)} />
+                  <textarea id="coop-terms" rows={14} value={cooperative} aria-describedby="terms-hint"
+                    onChange={(e) => setCooperative(e.target.value)} />
                 </div>
               </div>
             </div>
+            <p className="small muted" id="terms-hint">
+              Separate terms with commas or new lines. End a term with * to match any ending, so sanction* also finds
+              sanctions and sanctioned.
+            </p>
             <div className="row">
               <button type="button" className="btn primary" onClick={save}>Save dictionaries</button>
               <button type="button" className="btn" onClick={reset} disabled={isDefault && !current.custom}>

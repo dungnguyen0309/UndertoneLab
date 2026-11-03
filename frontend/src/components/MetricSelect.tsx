@@ -16,7 +16,7 @@ export default function MetricSelect({ value, onChange, keywords }: {
           {meta.metrics.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
         </optgroup>
         {keywords.length > 0 && (
-          <optgroup label="Keywords (per 1,000 words)">
+          <optgroup label="Keywords">
             {keywords.map((k) => <option key={k} value={`${KEYWORD_PREFIX}${k}`}>{metricLabel(`${KEYWORD_PREFIX}${k}`, meta.metrics)}</option>)}
           </optgroup>
         )}

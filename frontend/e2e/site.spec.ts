@@ -28,15 +28,53 @@ for (const path of ["/", "/un", "/datasets", "/dictionaries", "/method"]) {
   test(`page ${path} opens directly and fits the screen`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
+    // On phones the main menu sits behind the Menu button
+    await expect(page.getByRole("navigation", { name: "Main" }).or(page.getByRole("button", { name: "Menu" }))).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 }
 
+test("the mouse wheel glides the page to a stop, but a scroll box under the pointer scrolls itself", async ({ page, isMobile }) => {
+  test.skip(isMobile, "phones scroll by touch, which stays native");
+  await page.goto("/method");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // every position the page passes through, timed in the page itself
+  await page.evaluate(() => {
+    const trail: number[][] = [];
+    Object.assign(window, { trail });
+    addEventListener("scroll", () => trail.push([performance.now(), scrollY]));
+  });
+  await page.mouse.move(400, 400);
+  await page.mouse.wheel(0, 400);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(400);
+  const trail = await page.evaluate(() => (window as unknown as { trail: number[][] }).trail);
+  expect(trail.length).toBeGreaterThan(10);                                   // a glide, not a jump
+  expect(trail[trail.length - 1][0] - trail[0][0]).toBeGreaterThan(350);
+
+  await page.evaluate(() => {
+    const box = Object.assign(document.createElement("div"), { id: "box", innerHTML: "<div style='height:1000px'></div>" });
+    box.style.cssText = "position:fixed;left:0;top:200px;width:300px;height:150px;overflow:auto";
+    document.body.append(box);
+  });
+  await page.mouse.move(100, 260);
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => page.evaluate(() => document.getElementById("box")!.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => scrollY)).toBe(400);
+
+  // with Shift held the wheel stays the browser's (a sideways scroll), so the page does not glide down
+  await page.mouse.move(400, 500);
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, 300);
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => scrollY)).toBe(400);
+});
+
 // Automatic accessibility checks (WCAG 2.2 A and AA) on every page, in light and dark mode
 for (const scheme of ["light", "dark"] as const) {
   test(`every page passes the accessibility checks (${scheme})`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: scheme });
+    // reduced motion: contrast is checked on the settled page, not halfway through a block rising in
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
     const check = async (name: string) => {
       const { violations } = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();

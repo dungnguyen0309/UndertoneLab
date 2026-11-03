@@ -11,7 +11,7 @@ import TrendChart from "../components/TrendChart";
 import { PALETTE, useColorScheme, useCountryColors } from "../lib/colors";
 import { fixed, formatDelta, formatMetric, KEYWORD_PREFIX, metricLabel, plural, tickFormat } from "../lib/format";
 import { useAsync, useDocumentTitle, useMeta } from "../lib/hooks";
-import { scrollBehavior } from "../lib/media";
+import { scrollBehavior, stopGlide } from "../lib/media";
 import { speakerFlag, speakerName } from "../lib/history";
 import { useSpeech } from "../lib/speech";
 
@@ -132,6 +132,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
   // Once Close reading has rendered with the chosen speech, go there and move focus to its heading
   useEffect(() => {
     if (!arrivals || view !== "read") return;
+    stopGlide();
     document.getElementById("views")?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" });
     document.getElementById("close-reading-title")?.focus({ preventScroll: true });
   }, [arrivals, view]);
@@ -205,7 +206,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
               <div className="row chart-options">
                 <label className="checkbox">
                   <input type="checkbox" checked={showAverage} onChange={(e) => update({ avg: e.target.checked ? null : "0" })} />
-                  Average of all countries
+                  All-country average
                 </label>
                 <label className="checkbox">
                   <input type="checkbox" checked={showEvents} onChange={(e) => update({ ev: e.target.checked ? null : "0" })} />
@@ -303,7 +304,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
                 )}
               </div>
             </div>
-            <RankingCard metric={metric} year={year} names={names} onPick={openSpeech} />
+            <RankingCard metric={metric} year={year} names={names} colors={colors} onPick={openSpeech} />
           </>
         )}
 
@@ -342,7 +343,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
       </div>
 
       <p className="muted small">
-        Data: {meta.citation} Texts are the official English versions. CC0 licence.{" "}
+        Data: {meta.citation}. Texts are the official English versions. CC0 licence.{" "}
         <a href={api.un.exportUrl({})} download>Download all scores (CSV)</a>
       </p>
     </>
@@ -475,8 +476,9 @@ function SpaceTable({ series, onPick }: {
   );
 }
 
-function RankingCard({ metric, year, names, onPick }: {
-  metric: string; year: number; names: Record<string, string>; onPick: (code: string, year: number) => void;
+function RankingCard({ metric, year, names, colors, onPick }: {
+  metric: string; year: number; names: Record<string, string>; colors: Record<string, string>;
+  onPick: (code: string, year: number) => void;
 }) {
   const meta = useMeta();
   const [showAll, setShowAll] = useState(false);
@@ -485,7 +487,9 @@ function RankingCard({ metric, year, names, onPick }: {
   const shownYear = ranking.data?.year ?? year;      // the old year's rows stay up while the next year loads
   const rows = (ranking.data?.rows ?? []).filter((r) =>
     !filter || `${r.name} ${r.country}`.toLowerCase().includes(filter.toLowerCase()));
-  const visible = showAll || filter ? rows : rows.slice(0, 15);
+  // The top 15, plus the chart's countries wherever they stand, so the ranking places them among all the others
+  const visible = showAll || filter ? rows : rows.filter((r, i) => i < 15 || r.country in colors);
+  const position = new Map(rows.map((r, i) => [r.country, i]));
   const values = (ranking.data?.rows ?? []).map((r) => r.value);
   const lo = Math.min(0, ...values);
   const hi = Math.max(0, ...values);
@@ -497,20 +501,20 @@ function RankingCard({ metric, year, names, onPick }: {
 
   return (
     <div className="card">
-      <div className="card-head">
-        <h2>Country ranking</h2>
-        <div className="row">
-          <div className="field">
-            <label htmlFor="rank-filter">Find</label>
-            <input id="rank-filter" type="search" value={filter} placeholder="Country" style={{ width: "9rem" }}
-              onChange={(e) => setFilter(e.target.value)} />
-          </div>
+      <div className="card-head ranking-head">
+        <div>
+          <h2>Country ranking</h2>
+          <p className="muted small">{metricLabel(metric, meta.metrics)} in {shownYear}, highest first. The year follows
+            the player above.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="rank-filter">Find a country</label>
+          <input id="rank-filter" type="search" value={filter} style={{ width: "9rem" }}
+            onChange={(e) => setFilter(e.target.value)} />
         </div>
       </div>
-      <p className="muted small">{metricLabel(metric, meta.metrics)} in {shownYear}, highest first. The year follows the
-        player above.</p>
       {top.length > 0 && ranking.data && !meta.metrics.find((m) => m.id === metric)?.higher_is_worse && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="podium3d" aria-hidden="true" />}>
           <Podium rows={top} format={formatValue} onPick={(code) => onPick(code, shownYear)} />
         </Suspense>
       )}
@@ -519,25 +523,33 @@ function RankingCard({ metric, year, names, onPick }: {
         : !rows.length ? <p className="empty">No statements for this year.</p> : (
           <>
             <div className="table-wrap tall" tabIndex={0} role="region" aria-label="Country ranking">
-              <table>
-                <thead><tr><th className="num">#</th><th>Country</th><th className="num">Value</th><th aria-hidden="true" /></tr></thead>
+              <table className="ranking">
+                <thead><tr><th className="num rank">#</th><th>Country</th><th aria-hidden="true" /><th className="num">Value</th></tr></thead>
                 <tbody>
-                  {visible.map((r) => (
-                    <tr key={r.country} className="clickable" onClick={() => onPick(r.country, shownYear)}>
-                      <td className="num">{r.rank}</td>
-                      <td><RowLink onClick={() => onPick(r.country, shownYear)}>
-                        {speakerName(r.country, shownYear, names[r.country] ?? r.name)}</RowLink></td>
-                      <td className="num">{formatMetric(metric, r.value)}</td>
-                      <td className="bar-col" aria-hidden="true">
-                        <span className="bar-track">
-                          <span className="bar-fill" style={{
-                            left: `${((Math.min(0, r.value) - lo) / span) * 100}%`,
-                            width: `${Math.max((Math.abs(r.value) / span) * 100, 0.5)}%`,
-                          }} />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {visible.map((r, i) => {
+                    const chosen = r.country in colors;
+                    const afterGap = i > 0 && position.get(r.country)! - position.get(visible[i - 1].country)! > 1;
+                    return (
+                      <tr key={r.country} className={["clickable", chosen && "chosen", afterGap && "after-gap"].filter(Boolean).join(" ")}
+                        onClick={() => onPick(r.country, shownYear)}>
+                        <td className="num">{r.rank}</td>
+                        <td>
+                          {chosen && <span className="line-key" style={{ borderColor: colors[r.country] }} aria-hidden="true" />}
+                          <RowLink onClick={() => onPick(r.country, shownYear)}>
+                            {speakerName(r.country, shownYear, names[r.country] ?? r.name)}</RowLink>
+                        </td>
+                        <td className="bar-col" aria-hidden="true">
+                          <span className="bar-track">
+                            <span className="bar-fill" style={{
+                              left: `${((Math.min(0, r.value) - lo) / span) * 100}%`,
+                              width: `${Math.max((Math.abs(r.value) / span) * 100, 0.5)}%`,
+                            }} />
+                          </span>
+                        </td>
+                        <td className="num">{formatMetric(metric, r.value)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -552,11 +564,10 @@ function RankingCard({ metric, year, names, onPick }: {
   );
 }
 
-const KIND_TITLES: Record<NotableSentence["kind"], string> = {
-  hostile: "Sentences with the most hostile words",
-  negative: "Most negative sentences (VADER)",
-  cooperative: "Most cooperative sentences",
-};
+// The notable-sentence lists, in tab order
+const KINDS: [NotableSentence["kind"], string][] = [
+  ["hostile", "Most hostile"], ["negative", "Most negative"], ["cooperative", "Most cooperative"],
+];
 
 
 function CloseReading({ inChart, others, country, year, years, onChange }: {
@@ -579,23 +590,22 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
   const listening = speech.status !== "idle";
   const bar = useRef<HTMLDivElement>(null);
   const [jump, setJump] = useState<number | null>(null);          // a sentence picked from the notable lists
-  useEffect(() => setJump(null), [country, year]);
+  const [picked, setKind] = useState<NotableSentence["kind"] | null>(null);
+  useEffect(() => {
+    setJump(null);
+    setKind(null);
+  }, [country, year]);
   const position = useMemo(() => new Map(flat.map((s, i) => [s.index, i])), [flat]);   // scored number → reading order
-  // Each notable sentence once, in the first list it belongs to
-  const notable = useMemo(() => {
-    const seen = new Set<number>();
-    const groups = {} as Record<NotableSentence["kind"], NotableSentence[]>;
-    for (const kind of Object.keys(KIND_TITLES) as NotableSentence["kind"][]) {
-      groups[kind] = (statement.data?.sentences ?? []).filter((s) => s.kind === kind && !seen.has(s.position));
-      groups[kind].forEach((s) => seen.add(s.position));
-    }
-    return groups;
-  }, [statement.data]);
+  // A speech opens on its first list that has sentences
+  const sentences = statement.data?.sentences ?? [];
+  const kind = picked ?? KINDS.find(([k]) => sentences.some((s) => s.kind === k))?.[0] ?? "hostile";
+  const notable = sentences.filter((s) => s.kind === kind);
   const goTo = (scored: number) => {
     const i = position.get(scored);
     if (i === undefined) return;
     if (listening) speech.seek(i);
     else setJump(i);
+    stopGlide();
     document.querySelector('[data-testid="full-speech"]')?.scrollIntoView?.({ behavior: scrollBehavior(), block: "nearest" });
   };
   const name = statement.data ? speakerName(statement.data.country, statement.data.year, statement.data.name) : "";
@@ -612,7 +622,7 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
                   {inChart.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </optgroup>
               )}
-              <optgroup label="All delegations">
+              <optgroup label={inChart.length > 0 ? "Other delegations" : "All delegations"}>
                 {others.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </optgroup>
             </select>
@@ -640,12 +650,11 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
                   Session {statement.data.session} · {statement.data.year} ·{" "}
                   {plural(statement.data.counts.words, "word")} · {plural(statement.data.counts.sentences, "scored sentence")}
                 </p>
-                {fullText.error && !fullText.loading
-                  ? <p className="muted small">The full text of this speech is not available.</p>
-                  : <ListenBar speech={speech} what="this speech" barRef={bar} />}
+                {!(fullText.error && !fullText.loading) && <ListenBar speech={speech} what="this speech" barRef={bar} />}
                 {listening && <NowReading sentence={flat[speech.current]} />}
               </div>
             </div>
+            <MetricCards metrics={statement.data.metrics} />
             <MiniPlayer speech={speech} anchor={bar} what={`${name}'s speech`} />
             <div className="reading-body">
               <div className="reading-main">
@@ -659,33 +668,43 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
                 ) : fullText.loading ? <Loading /> : <p className="muted small">The full text is not available.</p>}
               </div>
               <div className="reading-side" role="region" aria-label="Notable sentences">
-                {(Object.keys(KIND_TITLES) as NotableSentence["kind"][]).map((kind) => (
-                  <div key={kind}>
-                    <h3 className="kind-title"><span className={`dot ${kind}`} aria-hidden="true" />{KIND_TITLES[kind]}</h3>
-                    {notable[kind].length ? (
-                      <ul className="sentences">
-                        {notable[kind].map((s) => (
-                          <li key={`${kind}-${s.position}`}>
-                            <HighlightedText text={s.sentence} spans={s.highlights} />
-                            <span className="score">
-                              {kind === "negative" ? `VADER ${fixed(s.score, 2)}` : `${s.score} ${kind} word${s.score === 1 ? "" : "s"}`} ·{" "}
-                              {position.has(s.position) ? (
-                                <button type="button" className="btn link listen-from"
-                                  aria-label={`Show sentence ${s.position + 1} in the speech`}
-                                  onClick={() => goTo(s.position)}>
-                                  sentence {s.position + 1}
-                                </button>
-                              ) : `sentence ${s.position + 1}`}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : <p className="empty">None.</p>}
-                  </div>
-                ))}
+                <div className="tabs" role="tablist" aria-label="Notable sentences" onKeyDown={(e) => {
+                  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                  const i = KINDS.findIndex(([k]) => k === kind);
+                  const next = KINDS[(i + (e.key === "ArrowRight" ? 1 : KINDS.length - 1)) % KINDS.length][0];
+                  setKind(next);
+                  document.getElementById(`kind-tab-${next}`)?.focus();
+                }}>
+                  {KINDS.map(([k, text]) => (
+                    <button key={k} id={`kind-tab-${k}`} type="button" role="tab" aria-selected={kind === k}
+                      aria-controls="kind-panel" tabIndex={kind === k ? 0 : -1} onClick={() => setKind(k)}>
+                      <span className={`dot ${k}`} aria-hidden="true" />{text}
+                    </button>
+                  ))}
+                </div>
+                <div id="kind-panel" role="tabpanel" aria-labelledby={`kind-tab-${kind}`}>
+                  {notable.length ? (
+                    <ul className="sentences">
+                      {notable.map((s) => (
+                        <li key={`${kind}-${s.position}`}>
+                          <HighlightedText text={s.sentence} spans={s.highlights} />
+                          <span className="score">
+                            {kind === "negative" ? `VADER ${fixed(s.score, 2)}` : `${s.score} ${kind} word${s.score === 1 ? "" : "s"}`} ·{" "}
+                            {position.has(s.position) ? (
+                              <button type="button" className="btn link listen-from"
+                                aria-label={`Show sentence ${s.position + 1} in the speech`}
+                                onClick={() => goTo(s.position)}>
+                                sentence {s.position + 1}
+                              </button>
+                            ) : `sentence ${s.position + 1}`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="empty">None.</p>}
+                </div>
               </div>
             </div>
-            <MetricCards metrics={statement.data.metrics} />
             <details className="table-view">
               <summary>Keyword rates in this statement</summary>
               <ul className="terms">

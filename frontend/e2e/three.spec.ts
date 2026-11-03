@@ -4,11 +4,13 @@ import { analyzeSample, expectNoHorizontalScroll, watchErrors } from "./helpers"
 test("the analysis shows a 3D sentence landscape", async ({ page }) => {
   const noErrors = watchErrors(page);
   await analyzeSample(page);
-  await expect(page.locator('.landscape3d[data-ready="true"] canvas')).toBeVisible();
   await expect(page.locator('.balance3d[data-ready="true"] canvas')).toBeVisible();
   await expect(page.getByText(/Each block is one word/)).toBeVisible();
   await page.getByRole("button", { name: "Weigh again" }).click();
   await expect(page.locator('.balance3d[data-ready="true"] canvas')).toBeVisible();
+  // the landscape sits with the sentence scores, on the results' second tab
+  await page.getByRole("tab", { name: "Sentences" }).click();
+  await expect(page.locator('.landscape3d[data-ready="true"] canvas')).toBeVisible();
   noErrors();
 });
 

@@ -115,7 +115,7 @@ export default function Rostrum({ code, name, year, session, speaking = false }:
     group.add(light);
     const rings = [0, 1, 2].map(() => {
       const ring = new Mesh(new TorusGeometry(0.06, 0.004, 6, 40), new MeshBasicMaterial({
-        color: scheme === "dark" ? 0x8fd3f5 : 0x0072bc, transparent: true, opacity: 0, depthWrite: false }));
+        color: scheme === "dark" ? 0x4db8ff : 0x0099ff, transparent: true, opacity: 0, depthWrite: false }));
       ring.position.copy(mic.position);
       ring.visible = false;
       group.add(ring);

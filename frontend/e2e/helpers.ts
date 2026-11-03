@@ -13,6 +13,13 @@ export async function analyzeSample(page: Page) {
   await page.getByRole("button", { name: "Analyze" }).click();
 }
 
+/** Go to a page through the main menu; on phones that first opens the menu drawer. */
+export async function openFromMenu(page: Page, name: string | RegExp) {
+  const menu = page.getByRole("button", { name: "Menu" });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name }).click();
+}
+
 /** Fail the test on any uncaught error in the page. */
 export function watchErrors(page: Page) {
   const errors: string[] = [];

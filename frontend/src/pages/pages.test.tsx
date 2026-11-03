@@ -96,7 +96,7 @@ describe("DictionariesPage counts", () => {
     ] } }) });
     const user = userEvent.setup();
     wrap(<DictionariesPage />);
-    await user.click(screen.getByRole("tab", { name: "How often they occur" }));
+    await user.click(screen.getByRole("tab", { name: "Word counts" }));
     const words = async () => (await screen.findAllByRole("row")).slice(1).map((r) => r.querySelector("mark")?.textContent);
     expect(await words()).toEqual(["sanction*", "dialogue", "war"]);
     expect(screen.getByRole("row", { name: /dialogue/ })).toHaveTextContent("60%");

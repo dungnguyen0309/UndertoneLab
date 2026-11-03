@@ -39,9 +39,9 @@ function frontTexture(place: number, height: number, dark: boolean) {
   canvas.width = 256;
   canvas.height = Math.round((256 * height) / WIDTH);
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = dark ? "#22384d" : "#eef3f8";
+  ctx.fillStyle = dark ? "#123552" : "#eef6fd";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = dark ? "#7cc8f0" : "#0072bc";
+  ctx.fillStyle = dark ? "#4db8ff" : "#0070c9";
   ctx.font = `800 ${Math.round(canvas.height * 0.62)}px "Fraunces Variable", Georgia, serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -75,7 +75,7 @@ export default function Podium({ rows, format, onPick }: Props) {
     stagePlatform.position.y = -0.02;
     group.add(stagePlatform);
 
-    const side = new MeshStandardMaterial({ color: dark ? 0x22384d : 0xeef3f8, roughness: 0.6 });
+    const side = new MeshStandardMaterial({ color: dark ? 0x123552 : 0xeef6fd, roughness: 0.6 });
     const poles: ReturnType<typeof createFlagPole>[] = [];
     targets.current = [];
     let cancelled = false;

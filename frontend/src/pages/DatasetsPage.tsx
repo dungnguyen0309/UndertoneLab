@@ -71,7 +71,7 @@ export default function DatasetsPage() {
                   <Link to={`/datasets/${d.id}`}>{d.name}</Link>
                   <span className="score">created {new Date(d.createdAt).toLocaleDateString()}</span>
                   <button type="button" className="btn link small" style={{ marginLeft: 8 }}
-                    onClick={() => storage.forgetDataset(d.id)}>forget</button>
+                    aria-label={`Forget ${d.name}`} onClick={() => storage.forgetDataset(d.id)}>forget</button>
                 </li>
               ))}
             </ul>

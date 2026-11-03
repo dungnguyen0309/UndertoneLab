@@ -9,7 +9,7 @@ import ToneRecord from "../components/ToneRecord";
 import SaveToDataset from "../components/SaveToDataset";
 import { downloadText, toCsv } from "../lib/csv";
 import { fixed, formatMetric, percent, plural } from "../lib/format";
-import { scrollBehavior } from "../lib/media";
+import { scrollBehavior, stopGlide } from "../lib/media";
 import { errorText, useDictionaries, useDocumentTitle, useMeta } from "../lib/hooks";
 import { useSpeech } from "../lib/speech";
 
@@ -56,6 +56,7 @@ export default function AnalyzePage() {
   // A new result: bring it into view and move focus to it, so keyboard and screen-reader users land on it too
   useEffect(() => {
     if (!result) return;
+    stopGlide();
     results.current?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" });
     results.current?.focus({ preventScroll: true });
     setAnnouncement(`Results ready. ${verdict(result.metrics.tone_balance)}.`);
@@ -88,7 +89,7 @@ export default function AnalyzePage() {
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > meta.limits.max_upload_bytes) {
-      setError(`That file is larger than ${Math.round(meta.limits.max_upload_bytes / 1_000_000)} MB.`);
+      setError(`That file is larger than ${Math.round(meta.limits.max_upload_bytes / 1_000_000)} MB. Paste its text instead.`);
       return;
     }
     setBusy(true);
@@ -165,7 +166,7 @@ export default function AnalyzePage() {
           {meta.context_model.available && (
             <label className="checkbox small">
               <input type="checkbox" checked={useContext} onChange={(e) => setUseContext(e.target.checked)} />
-              Also read each sentence with the context model ({meta.context_model.name})
+              Also label each sentence with the context model ({meta.context_model.name})
             </label>
           )}
         </div>
@@ -186,16 +187,20 @@ function Results({ result, text, sectionRef, onEdit }: {
 }) {
   const base = result.baseline;
   const [focus, setFocus] = useState<number | null>(null);
+  const [tab, setTab] = useState<"words" | "sentences">("words");
   return (
     <section aria-label="Results" className="results" tabIndex={-1} ref={sectionRef}>
       <div className="card record">
         <div className="card-head">
-          <h2 className="verdict-lead">
-            {verdict(result.metrics.tone_balance)}
+          <div className="verdict">
             {result.metrics.tone_balance !== null && (
-              <span className="verdict-figure"> · tone balance {formatMetric("tone_balance", result.metrics.tone_balance)}</span>
+              <span className="verdict-figure">{formatMetric("tone_balance", result.metrics.tone_balance)}</span>
             )}
-          </h2>
+            <div>
+              <h2 className="verdict-lead">{verdict(result.metrics.tone_balance)}</h2>
+              {result.metrics.tone_balance !== null && <span className="small muted">Tone balance</span>}
+            </div>
+          </div>
           <button type="button" className="btn small" onClick={onEdit}>Edit the text</button>
         </div>
         {base && base.tone_share_below !== null && base.hostility_share_below !== null
@@ -209,7 +214,7 @@ function Results({ result, text, sectionRef, onEdit }: {
             </p>
             {base.tone_histogram.length > 0 && result.metrics.tone_balance !== null && (
               <ToneRecord histogram={base.tone_histogram} value={result.metrics.tone_balance}
-                years={`${base.first_year}–${base.last_year}`}
+                average={base.averages.tone_balance} years={`${base.first_year}–${base.last_year}`}
                 shareBelow={base.tone_share_below} />
             )}
           </>
@@ -217,42 +222,60 @@ function Results({ result, text, sectionRef, onEdit }: {
         {result.warnings.map((w) => <Notice key={w} kind="warn">{w}</Notice>)}
       </div>
       <MetricCards metrics={result.metrics} compareTo={base?.averages}
-        compareLabel={base ? `UN avg ${base.first_year}–${base.last_year}` : undefined} />
+        compareLabel={base ? "UN avg" : undefined} />
       <p className="muted small">
         {plural(result.counts.words, "word")} · {plural(result.counts.sentences, "sentence")} ·{" "}
         {result.counts.hostile_hits.toLocaleString("en")} hostile and {result.counts.coop_hits.toLocaleString("en")} cooperative
         dictionary words
       </p>
 
-      <div className="grid-2">
-        <HighlightedCard reading={result.reading} />
-        <div className="card">
-          <h2>Balance of words</h2>
-          <Suspense fallback={null}>
-            <BalanceScale hostile={result.counts.hostile_hits} cooperative={result.counts.coop_hits}
-              hostileTerms={result.top_terms.hostile} coopTerms={result.top_terms.cooperative}
-              unAverage={base?.averages.tone_balance ?? null} />
-          </Suspense>
-          <h3 className="small">Most frequent hostile words</h3>
-          <TermList terms={result.top_terms.hostile} />
-          <h3 className="small">Most frequent cooperative words</h3>
-          <TermList terms={result.top_terms.cooperative} />
+      {/* The details in two tabs, kept mounted so a reading aloud carries on when the other tab is open */}
+      <div className="view-tabs" role="tablist" aria-label="Result details" onKeyDown={(e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const next = tab === "words" ? "sentences" : "words";
+        setTab(next);
+        document.getElementById(`result-tab-${next}`)?.focus();
+      }}>
+        {([["words", "Words"], ["sentences", "Sentences"]] as const).map(([key, label]) => (
+          <button key={key} id={`result-tab-${key}`} type="button" role="tab" aria-selected={tab === key}
+            aria-controls={`result-panel-${key}`} tabIndex={tab === key ? 0 : -1} onClick={() => setTab(key)}>{label}</button>
+        ))}
+      </div>
+
+      <div role="tabpanel" id="result-panel-words" aria-labelledby="result-tab-words" hidden={tab !== "words"}>
+        <div className="grid-2">
+          <HighlightedCard reading={result.reading} />
+          <div className="card">
+            <h2>Balance of words</h2>
+            <Suspense fallback={<div className="balance3d-stage" aria-hidden="true" />}>
+              <BalanceScale hostile={result.counts.hostile_hits} cooperative={result.counts.coop_hits}
+                hostileTerms={result.top_terms.hostile} coopTerms={result.top_terms.cooperative}
+                unAverage={base?.averages.tone_balance ?? null} />
+            </Suspense>
+            <h3 className="small">Most frequent hostile words</h3>
+            <TermList terms={result.top_terms.hostile} />
+            <h3 className="small">Most frequent cooperative words</h3>
+            <TermList terms={result.top_terms.cooperative} />
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-head">
-          <h2>Sentence landscape</h2>
-          <span className="small muted">{plural(result.sentences.length, "sentence")} in reading order · tap one to find it below</span>
+      <div role="tabpanel" id="result-panel-sentences" aria-labelledby="result-tab-sentences" hidden={tab !== "sentences"}>
+        <SentenceTable sentences={result.sentences} contextUsed={result.context_model.used} focus={focus} />
+        <div className="card">
+          <div className="card-head">
+            <h2>Sentence landscape</h2>
+            <span className="small muted">{plural(result.sentences.length, "sentence")} in reading order · tap one to find it in the table</span>
+          </div>
+          <Suspense fallback={<div className="landscape3d-stage" aria-hidden="true" />}>
+            <SentenceLandscape sentences={result.sentences} onPick={(index) => {
+              setFocus(index);
+              stopGlide();
+              document.getElementById(`sentence-${index}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
+            }} />
+          </Suspense>
         </div>
-        <Suspense fallback={<p className="muted">Loading 3D…</p>}>
-          <SentenceLandscape sentences={result.sentences} onPick={(index) => {
-            setFocus(index);
-            document.getElementById(`sentence-${index}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
-          }} />
-        </Suspense>
       </div>
-      <SentenceTable sentences={result.sentences} contextUsed={result.context_model.used} focus={focus} />
       <Limitations />
       <details className="save-details">
         <summary className="btn">Save this text to a dataset</summary>

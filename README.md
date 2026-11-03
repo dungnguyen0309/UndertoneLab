@@ -1,7 +1,7 @@
 # Undertone Lab
 
-A diplomatic language analyzer. Measure hostility, cooperation and rhetorical shifts in diplomatic texts: speeches, joint statements and
-state-media articles, and 80 years of UN General Debate statements (1946–2025).
+A diplomatic language analyzer. It measures hostility, cooperation and rhetorical shifts in diplomatic texts (speeches, joint
+statements, state-media articles) and in 80 years of UN General Debate statements (1946–2025).
 
 **Live app: https://undertonelab.vercel.app** · API documentation: https://undertonelab.vercel.app/api/docs
 
@@ -11,8 +11,8 @@ state-media articles, and 80 years of UN General Debate statements (1946–2025)
 
 | Page | What it does |
 |---|---|
-| **Analyze a text** | Paste a text or upload a `.txt`/`.pdf`. Get five tone metrics, a comparison with recent UN speeches, the text with hostile and cooperative words highlighted (press **Listen** to hear it read aloud, each sentence lighting up as it is read), a 3D balance scale (one block per hostile or cooperative word, and the beam tips towards the heavier pan), a 3D sentence landscape (every sentence as a tile, with columns for its hostile and cooperative words), a score for every sentence (CSV export), and save it to a dataset. |
-| **UN General Debate** | The Year by year view puts countries' flags on 3D poles whose height shows the chosen metric (your chart's countries, or the highest/lowest of the year); press Play to watch 1946–2025, tap a flag to read that speech. Or switch to the 3D Assembly hall: every delegation that spoke that year at its desk, with a column showing the metric, seated from lowest to highest or alphabetically. Explore 11,141 statements from 200 delegations by country, years and metric (or keyword), with the all-country average and key events, and follow each country through a 3D rhetoric space (hostile × cooperative words × time, each path ending in its flag). See the biggest year-to-year shifts, read any speech at a 3D speaker's rostrum with its most notable sentences and its full text, and listen to it read aloud (the rostrum's microphone lights up; jump to any notable sentence), rank all countries in a year (top three on a 3D podium), export CSV. |
+| **Analyze a text** | Paste a text or upload a `.txt`/`.pdf`. Get five tone metrics, a comparison with recent UN speeches, the text with hostile and cooperative words highlighted (press **Listen** to hear it read aloud, each sentence lighting up as it is read), a 3D balance scale (one block per hostile or cooperative word, and the beam tips towards the heavier pan), a 3D sentence landscape (every sentence as a tile, with columns for its hostile and cooperative words), and a score for every sentence (CSV export). Save the text to a dataset. |
+| **UN General Debate** | The Year by year view puts countries' flags on 3D poles whose height shows the chosen metric (your chart's countries, or the highest/lowest of the year); press Play to watch 1946–2025 or tap a flag to read that speech. Or switch to the 3D Assembly hall: every delegation that spoke that year at its desk, with a column showing the metric, seated from lowest to highest or alphabetically. Chart 11,141 statements from 200 delegations by country, years and metric (or keyword), with the all-country average and key events, and follow each country through a 3D rhetoric space (hostile × cooperative words × time, each path ending in its flag). See the biggest shifts between a country's consecutive statements, read any speech at a 3D speaker's rostrum with its most notable sentences and its full text, listen to it read aloud (the rostrum's microphone lights up; jump to any notable sentence), rank all countries in a year (top three on a 3D podium) and export CSV. |
 | **My datasets** | Upload a CSV (`country`, `year`, `text`, optional `source`, `title`) and follow how its tone changes by country and year (chart and 3D rhetoric space), compare it with the same countries' UN speeches, track keywords, rescore, export, delete. |
 | **Dictionaries** | Edit the hostile and cooperative word lists for your research question. |
 | **Method** | How every number is computed, and the method's limitations. |
@@ -32,7 +32,7 @@ Browser ──► Vercel ─┬─ /api/*  ──► FastAPI backend (backend/, 
 - The database is Postgres on Neon in production (SQLAlchemy + Alembic migrations), or SQLite on your computer when no
   `DATABASE_URL` is set.
 - The UN data pipeline (`python -m dla load-un`) verifies, scores and loads the UN General Debate Corpus, then the
-  full texts (compressed). It runs on a computer, not on Vercel.
+  full texts (compressed). It runs on your computer, not on Vercel.
 - Listening uses the browser's own speech voices (Web Speech API), which read the texts sentence by sentence. The app
   has no audio files and uses no outside service.
 - The tests use pytest (backend, run on SQLite and Postgres), Vitest (frontend) and Playwright (real browser, desktop
@@ -96,7 +96,7 @@ To run the browser tests against the live site: `cd frontend`, `set E2E_BASE_URL
   development environments. Its connection strings live only in Vercel's environment variables (`DATABASE_URL`,
   pooled, for the app; `DATABASE_URL_UNPOOLED`, direct, which the operator commands use automatically), never in
   the code.
-- After changing the dictionaries or the pipeline, reload the UN data against Neon from a computer:
+- After changing the dictionaries or the pipeline, reload the UN data against Neon from your computer:
   `vercel env pull .env.local`, then `npm run migrate` and `npm run load-un` (about 4 minutes; the live site keeps
   the old data until the new data is complete).
 

@@ -168,7 +168,7 @@ def add_documents(dataset_id: str, batch: DocumentBatch, db: Session = Depends(g
         doc = Document(dataset_id=dataset.id, country_code=code, year=item.year, text=item.text,
                        source=item.source or None, title=item.title or None)
         if score_document(doc, scorer, kw_regexes, dataset.scoring_version)["sentences"] == 0:
-            skipped.append({"row": i, "reason": "Too short: needs at least one sentence of 4+ words."})
+            skipped.append({"row": i, "reason": "The text needs at least one sentence of 4+ words."})
             continue
         db.add(doc)
         added += 1

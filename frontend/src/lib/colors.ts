@@ -2,10 +2,11 @@ import { useMemo, useRef } from "react";
 import { useMediaQuery } from "./media";
 
 // Categorical palette (validated for colour-vision deficiencies in both modes).
-// Slots are assigned in fixed order and stay with the country, never with its rank.
+// Slots are assigned in fixed order and stay with the country, never with its rank. The greens come sixth and eighth,
+// so the first four countries never wear the colour that means cooperative wording.
 export const PALETTE = {
-  light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#8f3f71"],
-  dark: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#c070a8"],
+  light: ["#2a78d6", "#eb6834", "#8f3f71", "#eda100", "#e87ba4", "#008300", "#6250d6", "#1baf7a"],
+  dark: ["#3987e5", "#d95926", "#c070a8", "#c98500", "#d55181", "#008300", "#9085e9", "#199e70"],
 };
 export const AVERAGE_COLOR = { light: "#898781", dark: "#a3a29b" };
 

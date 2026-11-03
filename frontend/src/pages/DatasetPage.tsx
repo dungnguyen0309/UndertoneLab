@@ -180,6 +180,10 @@ function DatasetView({ dataset, rows, rowsError, refresh }: {
           <Suspense fallback={<Loading label="Loading 3D…" />}>
             <RhetoricSpace series={spaceSeries} />
           </Suspense>
+          <p className="small muted">
+            Each line is one country&apos;s path through the years. Points above the shaded plane used more cooperative
+            than hostile words that year.
+          </p>
         </div>
       )}
 
@@ -214,7 +218,7 @@ function DatasetView({ dataset, rows, rowsError, refresh }: {
             <h2>Delete this dataset</h2>
             <p className="small muted">Removes the dataset and all its texts from the database. This cannot be undone.</p>
             <button type="button" className="btn danger" onClick={async () => {
-              if (!window.confirm(`Delete "${dataset.name}" and all ${dataset.documents} texts?`)) return;
+              if (!window.confirm(`Delete "${dataset.name}" and its ${plural(dataset.documents, "text")}?`)) return;
               try {
                 await api.datasets.remove(dataset.id, token);
                 storage.forgetDataset(dataset.id);
@@ -299,7 +303,7 @@ function Documents({ id, token, onChange }: { id: string; token?: string; onChan
                 <td className="num">{formatMetric("hostility", d.metrics.hostility)}</td>
                 {token && (
                   <td>
-                    <button type="button" className="btn link small" aria-label={`Delete text ${d.id}`} onClick={async () => {
+                    <button type="button" className="btn link small" aria-label={`Delete ${d.title ? `"${d.title}"` : `the text from ${d.country}, ${d.year}`}`} onClick={async () => {
                       if (!window.confirm("Delete this text?")) return;
                       try {
                         await api.datasets.removeDocument(id, token, d.id);
@@ -398,7 +402,7 @@ function CopyLink() {
       <button type="button" className="btn small" onClick={() => void copy()}>
         {state === "copied" ? "Link copied" : "Copy view-only link"}
       </button>
-      <span className="small muted" role="status">{state === "failed" ? "Copy the address from the address bar." : ""}</span>
+      <span className="small muted" role="status">{state === "failed" ? "Could not copy the link. Copy it from the address bar." : ""}</span>
     </>
   );
 }

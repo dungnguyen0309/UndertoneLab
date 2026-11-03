@@ -80,8 +80,9 @@ export default function TrendChart({ series, average, averageLabel = "All-countr
   // A legend entry picks out one line: the others fade but keep their colours, and it is drawn on top
   const focus = picked;
   const faded = (key: string) => focus !== null && key !== focus;
-  const labelEnds = series.length <= 4;
-  const labelled = (key: string) => (labelEnds && !faded(key)) || key === focus;
+  // On a phone the end labels would take a third of the plot and repeat the legend above it
+  const labelEnds = !narrow && series.length <= 4;
+  const labelled = (key: string) => !narrow && ((labelEnds && !faded(key)) || key === focus);
   const endPoints = endLabelPositions(series.filter((s) => labelled(s.key)));   // spread only the labels shown
 
   return (
@@ -118,15 +119,15 @@ export default function TrendChart({ series, average, averageLabel = "All-countr
       <div className={`chart-box${reloading ? " reloading" : ""}`} role="img"
         aria-label={`Line chart of ${valueLabel} by year, ${first}–${last}. The same values are in the table below.`}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart accessibilityLayer={false} data={rows} margin={{ top: eventLabels ? 52 : 12, right: labelEnds || focus ? 108 : 16, bottom: 4, left: 0 }}>
+          <LineChart accessibilityLayer={false} data={rows} margin={{ top: eventLabels ? 60 : 12, right: !narrow && (labelEnds || focus) ? 108 : 16, bottom: 4, left: 0 }}>
             <CartesianGrid vertical={false} stroke={ink.grid} />
             <XAxis dataKey="year" type="number" domain={[first, last]} allowDecimals={false} ticks={yearTicks}
               tick={{ fill: ink.axis, fontSize: 12 }} tickLine={false} axisLine={{ stroke: ink.grid }} />
             <YAxis tickFormatter={tickFormat} tick={{ fill: ink.axis, fontSize: 12 }} tickLine={false}
-              axisLine={false} width={44} domain={["auto", "auto"]} />
+              axisLine={false} width={narrow ? 36 : 44} domain={["auto", "auto"]} />
             {shownEvents.map((e, i) => (
               <ReferenceLine key={e.year} x={e.year} stroke={ink.grid} strokeWidth={1}
-                label={eventLabels ? { value: e.label, position: "top", fill: ink.axis, fontSize: 12, offset: 6 + 15 * (i % 3) }
+                label={eventLabels ? { value: e.label, position: "top", fill: ink.axis, fontSize: 12, offset: 14 + 15 * (i % 3) }
                   : undefined} />
             ))}
             {average && (

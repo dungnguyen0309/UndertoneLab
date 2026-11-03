@@ -50,7 +50,7 @@ interface PointMeta {
 const BOX = { x: [-1, 1] as const, y: [0, 1.25] as const, z: [-1.7, 1.7] as const };
 const HOME: [number, number, number] = [2.9, 1.9, 3.3];
 // Half-width/height of the box as seen from HOME (labels included), and its centre
-const FIT: [{ x: number; y: number }, [number, number, number]] = [{ x: 2.1, y: 1.5 }, [0, 0.3, 0]];
+const FIT: [{ x: number; y: number }, [number, number, number]] = [{ x: 2.2, y: 1.6 }, [0, 0.15, 0]];
 
 /** 3D path of each country's rhetoric: hostility × cooperation × year. */
 export default function RhetoricSpace({ series, onPick }: Props) {
@@ -79,8 +79,8 @@ export default function RhetoricSpace({ series, onPick }: Props) {
 
   useEffect(() => {
     if (!stage) return;
-    const ink = scheme === "dark" ? { grid: 0x2a2c2f, axis: 0x6b6f75, text: "#c6c9cd", plane: 0x4fb3ea }
-      : { grid: 0xdfe6ed, axis: 0x9aa8b6, text: "#3d4c5c", plane: 0x0072bc };
+    const ink = scheme === "dark" ? { grid: 0x2a2c2f, axis: 0x6b6f75, text: "#c6c9cd", plane: 0x33adff }
+      : { grid: 0xdfe6ed, axis: 0x9aa8b6, text: "#3d4c5c", plane: 0x0099ff };
     const small = isSmallScreen();
     const { maxH, maxC, first, last } = extent;
     const span = Math.max(1, last - first);
@@ -115,11 +115,9 @@ export default function RhetoricSpace({ series, onPick }: Props) {
       sx(0), sy(0), BOX.z[0], sx(hMax), sy(hMax), BOX.z[0], sx(hMax), sy(hMax), BOX.z[1],
       sx(0), sy(0), BOX.z[0], sx(hMax), sy(hMax), BOX.z[1], sx(0), sy(0), BOX.z[1],
     ], 3));
-    group.add(new Mesh(plane, new MeshBasicMaterial({ color: ink.plane, transparent: true, opacity: 0.08,
+    // (the caption under the view names the plane; a label inside it crossed the countries' paths)
+    group.add(new Mesh(plane, new MeshBasicMaterial({ color: ink.plane, transparent: true, opacity: 0.14,
       side: DoubleSide, depthWrite: false })));
-    const balanceLabel = textSprite("equal hostile & cooperative (tone 0)", { color: ink.text, height: small ? 0.1 : 0.07 });
-    balanceLabel.position.set(sx(hMax * 0.62), sy(hMax * 0.62) + 0.08, BOX.z[1] + 0.05);
-    group.add(balanceLabel);
 
     // Axis titles and ticks
     const label = (text: string, position: [number, number, number], height = small ? 0.11 : 0.075) => {
@@ -128,9 +126,8 @@ export default function RhetoricSpace({ series, onPick }: Props) {
       group.add(sprite);
     };
     const title = small ? 0.14 : 0.1;
-    label("Hostile words / 1,000 →", [0, -0.2, BOX.z[1] + 0.3], title);
+    label("Hostile / 1,000 →", [0, -0.2, BOX.z[1] + 0.3], title);
     label("Cooperative / 1,000 ↑", [BOX.x[0] - 0.1, BOX.y[1] + 0.16, BOX.z[0]], title);
-    label("Year →", [BOX.x[1] + 0.35, -0.14, 0], title);
     for (const h of xTicks) label(fmt(h), [sx(h), -0.11, BOX.z[1] + 0.16]);
     for (const c of yTicks.slice(1)) label(fmt(c), [BOX.x[0] - 0.12, sy(c), BOX.z[0]]);
     for (const year of zTicks) label(String(year), [BOX.x[1] + 0.22, -0.03, sz(year)]);
@@ -210,7 +207,7 @@ export default function RhetoricSpace({ series, onPick }: Props) {
         ))}
       </ul>
       <div className="space3d-stage" ref={ref} role="img"
-        aria-label="3D view of each country's hostile and cooperative words per 1,000 words over the years. Drag sideways to turn, pinch or scroll to zoom." />
+        aria-label="3D view of each country's hostile and cooperative words per 1,000 words over the years." />
       {tip.item && (
         <div className="tooltip space3d-tip" ref={tip.ref}>
           <div className="year">{tip.item.label} · {tip.item.year}</div>

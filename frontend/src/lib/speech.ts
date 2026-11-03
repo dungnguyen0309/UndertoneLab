@@ -124,7 +124,7 @@ export function useSpeech(sentences: string[]): Speech {
           setStatus("idle");
           setError(e.error === "not-allowed"
             ? "The browser blocked the voice. Press Listen again."
-            : "This device's voice could not read the text.");
+            : "This device's voice could not read the text. Press Listen to try again.");
         };
         synth.speak(u);
       });

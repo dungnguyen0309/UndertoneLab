@@ -55,7 +55,7 @@ test("shows the chart's numbers as a table and exports CSV", async ({ page, requ
 test("keeps the view in the address so it can be shared", async ({ page }) => {
   await page.goto("/un?m=negative_share&from=2000&to=2010&avg=0");
   await expect(page.getByRole("heading", { name: "Share of negative sentences" })).toBeVisible();
-  await expect(page.getByLabel("Average of all countries")).not.toBeChecked();
+  await expect(page.getByLabel("All-country average")).not.toBeChecked();
   await expect(page.getByRole("spinbutton", { name: "From" })).toHaveValue("2000");
   // the chosen tab is part of the address too, and the arrow keys move between tabs
   await page.goto("/un?v=space");

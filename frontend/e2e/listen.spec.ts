@@ -90,7 +90,7 @@ test("listens to a UN speech at the rostrum, and jumps to a notable sentence", a
 
 test("listens to an analyzed text, starting from a tapped sentence", async ({ page }) => {
   const noErrors = watchErrors(page);
-  await fakeVoice(page);
+  await fakeVoice(page, 1200);   // long enough per sentence that a busy machine still sees the tapped one highlighted
   await analyzeSample(page);
   const text = page.getByTestId("highlighted-text");
   await expect(text.locator("p")).toHaveCount(3);                  // the sample's three paragraphs
@@ -98,10 +98,14 @@ test("listens to an analyzed text, starting from a tapped sentence", async ({ pa
   await expect(text.locator("span.now")).toHaveCount(1);
 
   const eighth = text.locator('span[data-i="8"]');
+  const spoken = (await eighth.innerText()).trim();
+  const before = (await said(page)).length;
   await eighth.click();
   await expect(eighth).toHaveClass("now");
-  const spoken = await eighth.innerText();
-  await expect.poll(async () => (await said(page)).includes(spoken.trim())).toBe(true);
+  // reading restarts at the tapped sentence: it is said next, or one later if a sentence ended just before the tap
+  // (reaching it without the tap would take several sentences)
+  await expect.poll(async () => (await said(page)).slice(before).indexOf(spoken)).toBeGreaterThanOrEqual(0);
+  expect((await said(page)).slice(before).indexOf(spoken)).toBeLessThanOrEqual(1);
   // after the last sentence it stops by itself
   await expect(page.getByRole("button", { name: "Listen", exact: true })).toBeVisible({ timeout: 5000 });
   await expect(text.locator("span.now")).toHaveCount(0);

@@ -108,7 +108,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
     sun.position.set(2, 4, 3);
     group.add(sun);
     const avg = new Mesh(new PlaneGeometry(1, 0.012), new MeshBasicMaterial({
-      color: scheme === "dark" ? 0x8fd3f5 : 0x0072bc, transparent: true, opacity: 0.8, side: DoubleSide }));
+      color: scheme === "dark" ? 0x4db8ff : 0x0099ff, transparent: true, opacity: 0.8, side: DoubleSide }));
     group.add(avg);
     stage.scene.add(group);
     scene.current = { group, poles: new Map(), avg };

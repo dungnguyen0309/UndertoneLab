@@ -300,3 +300,62 @@ cases that cannot happen. The code is about 600 lines shorter; no page looks or 
   (2 November).
 - The README's animation is a drawing of the Analyze page with the sample's real result, recorded frame by frame,
   not a screen recording, so it does not change when the app does.
+
+## 25. Type and motion from akukolabs.com
+akukolabs.com (a keyboard studio's site) was taken apart for what a research tool can use. Its type and motion came
+over; its layout and colour did not, since the white cards and the deep-blue banner stay.
+- Page titles are Fraunces at weight 300 in italic, after the site's light editorial italics. They are a little larger
+  than the old bold titles (`clamp(1.75rem, 3.2vw, 2rem)`, 32px at most, the size of an app's title rather than a
+  headline) so the light weight still leads the page.
+- The footer ends on the app's name set across the column and cut off by the page's end. It is one shade off the
+  footer, hidden from screen readers, and held at Fraunces' largest optical size, because the font gets wider at
+  smaller optical sizes and the name would run past the column on a phone.
+- Two of the site's curves are now tokens: `--ease-open` (`cubic-bezier(0.25, 0.5, 0, 1)`) for disclosures and the
+  pinned player, `--ease-drawer` (`cubic-bezier(0.87, 0, 0.13, 1)`) for the phone menu. Disclosures open on it where
+  the browser supports `::details-content` and `interpolate-size`; elsewhere they open at once.
+- On phones (760px and under) the menu is a round button whose lines cross into an X, opening the same nav as a
+  drawer under the header, with the page names in the title face. It replaces the sideways-scrolling strip and its
+  fade. Escape, a link or a tap outside closes it, and the page behind does not scroll while it is open.
+- Motion as on the site: a page's title rises from under a mask, the blocks under the banner rise into place 70ms
+  apart, blocks further down rise as they scroll into view, and the footer's wordmark comes up from the page's end
+  as the footer arrives. The scroll-linked parts use CSS scroll-driven animations; browsers without them show the
+  page at rest. Reduced motion turns all of it off, and the accessibility checks run with reduced motion so they
+  measure the settled page.
+- A scroll-linked animation makes its element the containing block for anything `position: fixed` inside it, so the
+  pinned player now renders at the page root through a portal instead of inside its card.
+- Not taken: the custom cursor (a data tool needs the real pointer), the smooth-scroll takeover (it fights the
+  sticky tabs, the tables' own scrolling and the 3D views), tracked uppercase text, marquees, the side rail and the
+  per-page colours.
+
+## 26. A measured design pass
+Every page was opened at 1440, 768 and 390 pixels on the production build and measured against a set of rules for
+working screens drawn from real products (headline size, colour share, edges, borders, rows that end apart, unused
+width, text against the screen edge), then looked at by eye.
+- Fixed: page titles capped at 32px; the Method page was one card in 60% of the width, and is now two cards side by
+  side ending level (how a text is scored, sources and the data on the left; limitations, listening, uploads and the
+  API on the right), with the numbers dropped from its first two headings; the dark-mode card edge is a solid
+  #2c2e31 rather than white at 10%, which looks the same and reads as what it is.
+- Kept on purpose: the deep-blue banner (14-17% of each first screen is strong colour; the owner keeps it, §17); the
+  Assembly hall's colour-scale legend is a gradient because it explains a continuous scale; the "Your datasets"
+  card is shorter than the upload form beside it until a dataset exists, since the cards keep their own height
+  rather than stretch over a blank band; the page-open and scroll motion of §25, which the owner asked for, although
+  rules for working screens keep motion to feedback only.
+- Not a finding: a "−1.0" reported at the screen's left edge is the chart library's hidden measuring span, placed
+  20,000px above the page.
+
+## 27. Sky blue, cloudy white and amber red
+The owner chose a new palette: sky blue #0099ff and cloudy white #fdfdfe as the main colours, and amber red as the
+third. The red is #e63e26, read from the swatch of the owner's palette image (its printed code, #E0F354, is a lime
+yellow and does not match the swatch).
+- The page ground is cloudy white; cards stay white with their 1px edge.
+- Sky blue is the logo mark, data marks (bars, the tone record's marker, the flag view's average line), focus rings,
+  form controls and pale tints (`--tint`, `--tint-2`). It is 3:1 on white, enough for graphics and focus but not for
+  text, so links use a deeper step of the same hue, #0070c9 (5.0:1).
+- The banner keeps cloud-white text, so it sits on a deeper sky blue, #0077c7 (4.6:1); dark mode uses #0066b3.
+- Amber red marks the current page in the menu and the selected tab (#e63e26), and fills the main buttons one step
+  deeper, #d73a24, so their cloud-white labels read at 4.6:1 (hover #c03420). It is never used on data, where it
+  would read as the hostile red. Text selection stays sky blue for the same reason: an amber selection would look
+  like a hostile highlight.
+- The 3D views, the favicon and the browser's theme colour follow the sky blue. The data scales (red-grey-blue for
+  tone, sequential red and blue) and the country palette are unchanged: they encode meaning and were validated.
+- The token `--un-deep` is now `--sky`.

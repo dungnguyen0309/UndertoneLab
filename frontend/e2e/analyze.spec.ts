@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { analyzeSample, expectNoHorizontalScroll, watchErrors } from "./helpers";
+import { analyzeSample, expectNoHorizontalScroll, openFromMenu, watchErrors } from "./helpers";
 
 test("analyzes the sample text", async ({ page }) => {
   const noErrors = watchErrors(page);
@@ -10,6 +10,7 @@ test("analyzes the sample text", async ({ page }) => {
   await expect(page.getByText(/This is a short text/)).toBeVisible();      // the sample is under 500 words
   await expect(page.getByTestId("highlighted-text").locator("mark.hostile").first()).toBeVisible();
   await expect(page.getByTestId("highlighted-text").locator("mark.cooperative").first()).toBeVisible();
+  await page.getByRole("tab", { name: "Sentences" }).click();
   const sentences = page.getByRole("table").last();
   await expect(sentences.getByRole("row")).toHaveCount(11);           // header + 10 sentences
   await page.getByLabel("Most negative (VADER)").check();
@@ -44,7 +45,7 @@ test("custom dictionaries change the scores and switch off the UN comparison", a
   await page.getByRole("button", { name: "Save dictionaries" }).click();
   await expect(page.getByText("Saved in this browser.")).toBeVisible();
 
-  await page.getByRole("link", { name: /^Analyze/ }).click();
+  await openFromMenu(page, /^Analyze/);
   await page.getByRole("button", { name: "Use sample text" }).click();
   await page.getByRole("button", { name: "Analyze" }).click();
   await expect(page.getByText(/Custom dictionaries are in use/)).toBeVisible();

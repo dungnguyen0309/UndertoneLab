@@ -28,8 +28,8 @@ for (const path of ["/", "/un", "/datasets", "/dictionaries", "/method"]) {
   test(`page ${path} opens directly and fits the screen`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    // On phones the main menu sits behind the Menu button
-    await expect(page.getByRole("navigation", { name: "Main" }).or(page.getByRole("button", { name: "Menu" }))).toBeVisible();
+    // The main menu sits behind the Menu button
+    await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 }

@@ -13,10 +13,9 @@ export async function analyzeSample(page: Page) {
   await page.getByRole("button", { name: "Analyze" }).click();
 }
 
-/** Go to a page through the main menu; on phones that first opens the menu drawer. */
+/** Go to a page through the main menu: open the drawer, then pick the page. */
 export async function openFromMenu(page: Page, name: string | RegExp) {
-  const menu = page.getByRole("button", { name: "Menu" });
-  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name }).click();
 }
 

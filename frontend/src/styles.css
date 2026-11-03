@@ -1,7 +1,7 @@
-/* Sky blue on cloudy white, with amber red for "you are here". Sky blue (#0099ff) is 3:1 on white: enough for
-   graphics, focus and large text, so in light mode the banner and the main button carry navy text, and links take
-   a deeper step of the same hue (#0070c9) that passes WCAG AA. Amber red marks the current page, the selected tab
-   and the main buttons, never data, where it would read as the hostile red. */
+/* Sky blue on cloudy white, with amber red on the main buttons. Sky blue (#0099ff) is 3:1 on white: enough for
+   graphics, focus and the selected tab's mark, not for text, so links take a deeper step of the same hue (#0070c9)
+   and the banner a deeper field (#0077c7) under its cloud-white text. Amber red is never used on data, where it
+   would read as the hostile red. */
 :root {
   color-scheme: light;
   --sky: #0099ff;
@@ -17,12 +17,10 @@
   --accent: #0099ff;
   --link: #0070c9;
   --focus: #0099ff;
-  /* amber red (#e63e26) marks the current page and the selected tab; the main buttons take it one step deeper so a
-     cloud-white label reads at 4.6:1 */
+  /* the main buttons: the palette's amber red (#e63e26) one step deeper, so a cloud-white label reads at 4.6:1 */
   --action: #d73a24;
   --action-ink: #fdfdfe;
   --action-hover: #c03420;
-  --highlight: #e63e26;
   --footer-bg: #0b2545;
   --footer-ink: #c9d8e6;
   --footer-link: #66c2ff;
@@ -50,6 +48,7 @@
   /* pale steps of the sky blue, for areas that carry data (chosen rows, the record's bars) */
   --tint: #e5f4ff;
   --tint-2: #c2e4ff;
+  --tint-ink: #004a87;   /* text on a tint: the dark of the same blue (8:1) */
   /* Two curves from akukolabs.com: a long soft ease-out for things that open, and a steep ease-in-out for the
      menu drawer */
   --ease-open: cubic-bezier(0.25, 0.5, 0, 1);
@@ -74,7 +73,6 @@
     --accent: #0099ff;
     --link: #4db8ff;
     --focus: #33adff;
-    --highlight: #e63e26;
     --footer-bg: #0a0b0c;
     --footer-ink: #a4a8ae;
     --footer-link: #4db8ff;
@@ -82,6 +80,7 @@
     --scrollbar: #43474c;
     --tint: rgba(0, 153, 255, 0.12);
     --tint-2: rgba(0, 153, 255, 0.24);
+    --tint-ink: #bfe2ff;
     --banner: #0066b3;
     --banner-ink-2: #d4ebff;
     --hostile-bg: rgba(230, 103, 103, 0.3);
@@ -298,178 +297,144 @@ a {
   }
 }
 
-.nav {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
+/* The menu: a round button that opens the pages as a drawer under the header, on every screen (after
+   akukolabs.com). On a wide screen the names line up with the logo; the current page sits on a sky-blue band
+   across the drawer, and hover shows a grey one. */
+.menu-button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
   margin-left: auto;
-  align-self: stretch;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--surface);
+  cursor: pointer;
+  transition: transform 0.6s var(--ease-drawer);
+}
+
+.menu-button:active {
+  transform: scale(0.94);
+  transition-duration: 120ms;
+}
+
+.menu-lines {
+  display: grid;
+  gap: 5px;
+  width: 16px;
+}
+
+.menu-lines span {
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.6s var(--ease-drawer);
+}
+
+/* the three lines cross into an X while the drawer is open */
+.menu-button[aria-expanded="true"] .menu-lines span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.menu-button[aria-expanded="true"] .menu-lines span:nth-child(2) {
+  transform: scaleX(0);
+}
+
+.menu-button[aria-expanded="true"] .menu-lines span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+.nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px max(16px, calc((100% - 1148px) / 2)) 16px;   /* the names start where the logo does */
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  visibility: hidden;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.6s var(--ease-drawer), visibility 0s 0.6s;
+}
+
+.nav[data-open] {
+  visibility: visible;
+  clip-path: inset(0);
+  transition: clip-path 0.6s var(--ease-drawer);
 }
 
 .nav a {
-  display: flex;
-  align-items: center;
+  display: block;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--grid);
   color: var(--ink-2);
   text-decoration: none;
-  padding: 0 12px;
-  white-space: nowrap;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border-bottom: 2px solid transparent;
-  border-top: 2px solid transparent;
+  font: italic 300 1.75rem/1.2 var(--display);
+  letter-spacing: -0.015em;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.6s var(--ease-drawer), transform 0.6s var(--ease-drawer);
+}
+
+.nav a:last-child {
+  border-bottom: 0;
+}
+
+/* a band the row's colour carried out to the drawer's edges */
+.nav a.active {
+  color: var(--tint-ink);
+  background: var(--tint);
+  box-shadow: 0 0 0 100vmax var(--tint);
+  clip-path: inset(0 -100vmax);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .nav a:hover {
+  .nav a:not(.active):hover {
+    --band: color-mix(in srgb, var(--ink) 6%, transparent);   /* grey in both modes, apart from the blue band */
     color: var(--ink);
-    border-bottom-color: var(--grid);
+    background: var(--band);
+    box-shadow: 0 0 0 100vmax var(--band);
+    clip-path: inset(0 -100vmax);
   }
 }
 
-.nav-short {
-  display: none;
+.nav[data-open] a {
+  opacity: 1;
+  transform: none;
 }
 
-@media (max-width: 560px) {
-  .nav-long {
-    display: none;
-  }
-  .nav-short {
-    display: inline;
-  }
-}
+.nav[data-open] a:nth-child(2) { transition-delay: 40ms; }
+.nav[data-open] a:nth-child(3) { transition-delay: 80ms; }
+.nav[data-open] a:nth-child(4) { transition-delay: 120ms; }
+.nav[data-open] a:nth-child(5) { transition-delay: 160ms; }
 
-/* The smallest phones still scroll the tabs sideways */
-@media (max-width: 400px) {
-  div.view-tabs button {          /* div.: this block sits before the tabs' own rules */
-    padding: 10px 6px;
+@media (min-width: 761px) {
+  .nav a {
+    font-size: 2rem;
   }
 }
 
-/* On phones the sentence keeps a readable width; the table scrolls sideways inside its frame instead */
-@media (max-width: 560px) {
-  .sentence-cell {
-    min-width: 15em;
-  }
-}
-
-.nav a.active {
-  color: var(--ink);
-  border-bottom-color: var(--highlight);
-}
-
-.menu-button,
 .nav-scrim {
-  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100dvh;
+  background: rgba(15, 28, 43, 0.32);
+  animation: scrim-in 0.6s var(--ease-drawer);
 }
 
-/* Phones: a round menu button opens the same nav as a drawer under the header (after akukolabs.com) */
+html:has(.nav[data-open]) {
+  overflow: hidden;
+}
+
 @media (max-width: 760px) {
   .site-header .container {
     min-height: 60px;
-    flex-wrap: nowrap;
-  }
-  .menu-button {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 40px;
-    height: 40px;
-    margin-left: auto;
-    border: 0;
-    border-radius: 50%;
-    background: var(--ink);
-    color: var(--surface);
-    cursor: pointer;
-    transition: transform 0.6s var(--ease-drawer);
-  }
-  .menu-button:active {
-    transform: scale(0.94);
-    transition-duration: 120ms;
-  }
-  .menu-lines {
-    display: grid;
-    gap: 5px;
-    width: 16px;
-  }
-  .menu-lines span {
-    height: 1.5px;
-    background: currentColor;
-    transition: transform 0.6s var(--ease-drawer);
-  }
-  /* the three lines cross into an X while the drawer is open */
-  .menu-button[aria-expanded="true"] .menu-lines span:nth-child(1) {
-    transform: translateY(6.5px) rotate(45deg);
-  }
-  .menu-button[aria-expanded="true"] .menu-lines span:nth-child(2) {
-    transform: scaleX(0);
-  }
-  .menu-button[aria-expanded="true"] .menu-lines span:nth-child(3) {
-    transform: translateY(-6.5px) rotate(-45deg);
-  }
-  .nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1;
-    flex-direction: column;
-    margin: 0;
-    padding: 4px 16px 16px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    visibility: hidden;
-    clip-path: inset(0 0 100% 0);
-    transition: clip-path 0.6s var(--ease-drawer), visibility 0s 0.6s;
-  }
-  .nav[data-open] {
-    visibility: visible;
-    clip-path: inset(0);
-    transition: clip-path 0.6s var(--ease-drawer);
-  }
-  .nav a {
-    padding: 10px 0;
-    border-top: 0;
-    border-bottom: 1px solid var(--grid);
-    font: italic 300 1.75rem/1.2 var(--display);
-    letter-spacing: -0.015em;
-    white-space: normal;
-    opacity: 0;
-    transform: translateY(-12px);
-    transition: opacity 0.6s var(--ease-drawer), transform 0.6s var(--ease-drawer);
-  }
-  .nav a:last-child {
-    border-bottom: 0;
-  }
-  .nav a.active {
-    border-bottom-color: var(--grid);
-    text-decoration: underline 2px var(--highlight);
-    text-underline-offset: 0.16em;
-  }
-  .nav a.active:last-child {
-    border-bottom: 0;
-  }
-  .nav[data-open] a {
-    opacity: 1;
-    transform: none;
-  }
-  .nav[data-open] a:nth-child(2) { transition-delay: 40ms; }
-  .nav[data-open] a:nth-child(3) { transition-delay: 80ms; }
-  .nav[data-open] a:nth-child(4) { transition-delay: 120ms; }
-  .nav[data-open] a:nth-child(5) { transition-delay: 160ms; }
-  .nav-scrim {
-    display: block;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 100dvh;
-    background: rgba(15, 28, 43, 0.32);
-    animation: scrim-in 0.6s var(--ease-drawer);
-  }
-  html:has(.nav[data-open]) {
-    overflow: hidden;
   }
 }
 
@@ -499,6 +464,33 @@ a {
   }
   .nav-scrim {
     animation: none;
+  }
+}
+
+.nav-short {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .nav-long {
+    display: none;
+  }
+  .nav-short {
+    display: inline;
+  }
+}
+
+/* The smallest phones still scroll the tabs sideways */
+@media (max-width: 400px) {
+  div.view-tabs button {          /* div.: this block sits before the tabs' own rules */
+    padding: 10px 6px;
+  }
+}
+
+/* On phones the sentence keeps a readable width; the table scrolls sideways inside its frame instead */
+@media (max-width: 560px) {
+  .sentence-cell {
+    min-width: 15em;
   }
 }
 
@@ -1981,7 +1973,7 @@ tr.focused td {
 
 .view-tabs button[aria-selected="true"] {
   color: var(--ink);
-  border-bottom-color: var(--highlight);
+  border-bottom-color: var(--accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2143,7 +2135,7 @@ tr.focused td {
 
 .tabs button[aria-selected="true"] {
   color: var(--ink);
-  border-bottom-color: var(--highlight);
+  border-bottom-color: var(--accent);
 }
 
 .tabs button:focus-visible {

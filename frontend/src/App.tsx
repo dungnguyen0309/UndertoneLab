@@ -24,7 +24,7 @@ const NAV = [
 export default function App() {
   const meta = useAsync(() => withRetry(() => api.meta()), []);
   useSmoothWheel();
-  // On phones the menu is a drawer under the header; on wider screens the same nav is a row and this stays unused
+  // The menu is a drawer under the header, opened by a round button, at every screen size
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeMenu = () => setMenuOpen(false);

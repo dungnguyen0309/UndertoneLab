@@ -359,3 +359,13 @@ yellow and does not match the swatch).
 - The 3D views, the favicon and the browser's theme colour follow the sky blue. The data scales (red-grey-blue for
   tone, sequential red and blue) and the country palette are unchanged: they encode meaning and were validated.
 - The token `--un-deep` is now `--sky`.
+
+## 28. One menu on every screen, and no red underline
+- The menu is the round button and drawer at every width, not only on phones: desktops and unfolded foldable
+  phones get the same list of page names in the title face. On a wide screen the names start where the logo does.
+- The current page is no longer underlined in amber red. It sits on a pale sky-blue band carried to the drawer's
+  edges, with its name in the dark of the same blue (#004a87, 8:1; #bfe2ff in dark mode); hover shows a grey band.
+  The selected tab keeps its underline, in sky blue. Amber red is now only on the main buttons.
+- A measured design pass after the palette change found nothing new to fix. The rule against a terracotta or rust
+  accent was allowed for the amber red buttons, which are the owner's palette; the remaining warnings are the
+  banner's colour share, the first-use datasets row (§26) and the chart library's hidden measuring text.

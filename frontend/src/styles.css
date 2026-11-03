@@ -1,6 +1,6 @@
-/* Sky blue on cloudy white, with amber red on the main buttons. Sky blue (#0099ff) is 3:1 on white: enough for
+/* Sky blue on cloudy white, with crimson on the main buttons. Sky blue (#0099ff) is 3:1 on white: enough for
    graphics, focus and the selected tab's mark, not for text, so links take a deeper step of the same hue (#0070c9)
-   and the banner a deeper field (#0077c7) under its cloud-white text. Amber red is never used on data, where it
+   and the banner a deeper field (#0077c7) under its cloud-white text. Crimson is never used on data, where it
    would read as the hostile red. */
 :root {
   color-scheme: light;
@@ -17,10 +17,10 @@
   --accent: #0099ff;
   --link: #0070c9;
   --focus: #0099ff;
-  /* the main buttons: the palette's amber red (#e63e26) one step deeper, so a cloud-white label reads at 4.6:1 */
-  --action: #d73a24;
+  /* the main buttons: a true crimson, so a cloud-white label reads at 5.8:1 */
+  --action: #c8102e;
   --action-ink: #fdfdfe;
-  --action-hover: #c03420;
+  --action-hover: #a80d26;
   --footer-bg: #0b2545;
   --footer-ink: #c9d8e6;
   --footer-link: #66c2ff;
@@ -28,8 +28,8 @@
   --banner: #0077c7;
   --banner-ink: #fdfdfe;
   --banner-ink-2: #fdfdfe;
-  /* Faint row of flagpoles along the banners' lower edge (the flags in front of UN headquarters) */
-  --flag-row: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='40' viewBox='0 0 64 40'%3E%3Cpath d='M8 6v34M40 6v34' stroke='white' stroke-opacity='.22' stroke-width='1.2'/%3E%3Ccircle cx='8' cy='5' r='1.4' fill='white' fill-opacity='.32'/%3E%3Ccircle cx='40' cy='5' r='1.4' fill='white' fill-opacity='.32'/%3E%3Cpath d='M9 7q5-3 10 0t10 0v10q-5 3-10 0t-10 0z' fill='white' fill-opacity='.16'/%3E%3Cpath d='M41 7q5-3 10 0t10 0v10q-5 3-10 0t-10 0z' fill='none' stroke='white' stroke-opacity='.26' stroke-width='1.1'/%3E%3C/svg%3E");
+  /* Row of flagpoles along the banners' lower edge (the flags in front of UN headquarters), clear of the text */
+  --flag-row: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='40' viewBox='0 0 64 40'%3E%3Cpath d='M8 6v34M40 6v34' stroke='white' stroke-opacity='.42' stroke-width='1.2'/%3E%3Ccircle cx='8' cy='5' r='1.4' fill='white' fill-opacity='.6'/%3E%3Ccircle cx='40' cy='5' r='1.4' fill='white' fill-opacity='.6'/%3E%3Cpath d='M9 7q5-3 10 0t10 0v10q-5 3-10 0t-10 0z' fill='white' fill-opacity='.32'/%3E%3Cpath d='M41 7q5-3 10 0t10 0v10q-5 3-10 0t-10 0z' fill='none' stroke='white' stroke-opacity='.5' stroke-width='1.1'/%3E%3C/svg%3E");
   --hostile-bg: rgba(227, 73, 72, 0.2);
   --hostile-line: #c43d3c;
   --coop-bg: rgba(27, 175, 122, 0.22);
@@ -43,6 +43,8 @@
   --info-ink: #0b3a66;
   --selection: rgba(0, 153, 255, 0.22);
   --radius: 8px;
+  /* the page's side margin: 16px on a phone, growing to 32px on a wide screen */
+  --gutter: clamp(16px, 2.5vw, 32px);
   --footer-wordmark: #16406e;
   --scrollbar: #b4c6d6;
   /* pale steps of the sky blue, for areas that carry data (chosen rows, the record's bars) */
@@ -236,7 +238,7 @@ a {
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 var(--gutter);
 }
 
 .site-header {
@@ -353,7 +355,7 @@ a {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  padding: 4px max(16px, calc((100% - 1148px) / 2)) 16px;   /* the names start where the logo does */
+  padding: 4px max(var(--gutter), calc((100% - 1180px) / 2 + var(--gutter))) 16px;   /* the names start where the logo does */
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   visibility: hidden;
@@ -521,10 +523,11 @@ main.container {
   margin-bottom: 6px;
 }
 
+/* 56ch of Jost (whose zero is wide) holds about 78 characters a line */
 .page-intro p {
   color: var(--banner-ink-2);
   margin-bottom: 0;
-  max-width: 70ch;
+  max-width: 56ch;
 }
 
 .page-intro p + p {
@@ -643,8 +646,8 @@ main.container {
 .footer-wordmark {
   max-width: 1180px;
   margin: 8px auto -0.2em;
-  padding: 0 16px;
-  font: italic 300 calc((min(100cqi, 1180px) - 32px) * 0.213) / 1 var(--display);   /* the name is 4.68em wide */
+  padding: 0 var(--gutter);
+  font: italic 300 calc((min(100cqi, 1180px) - 2 * var(--gutter)) * 0.213) / 1 var(--display);   /* the name is 4.68em wide */
   font-variation-settings: "opsz" 144;   /* one optical size, so that width holds on every screen */
   letter-spacing: -0.03em;
   white-space: nowrap;
@@ -751,6 +754,11 @@ main.container {
   font-size: 0.875rem;
 }
 
+/* Small grey text (captions, notes) one weight above the body's 300, so its thin strokes hold up */
+.small.muted {
+  font-weight: 400;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -777,7 +785,7 @@ label {
 
 /* The result's record: the verdict, where it sits among the UN statements, and the caveats that change it */
 .record > p {
-  max-width: 90ch;
+  max-width: 56ch;
 }
 
 h2.verdict-lead {
@@ -800,8 +808,26 @@ input[aria-invalid="true"] {
   border-color: var(--bad);
 }
 
+/* Diverging around zero, as everywhere tone balance is drawn: red, grey, blue */
 .tone-record-bar {
+  fill: #d3dbe2;
+}
+
+.tone-record-bar.neg {
+  fill: #f2c5c1;
+}
+
+.tone-record-bar.pos {
   fill: var(--tint-2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tone-record-bar {
+    fill: #3a3d41;
+  }
+  .tone-record-bar.neg {
+    fill: rgba(230, 103, 103, 0.38);
+  }
 }
 
 .tone-record-zero {
@@ -903,7 +929,7 @@ input[aria-invalid="true"] {
 }
 
 .field .hint {
-  font-weight: 300;
+  font-weight: 400;
   color: var(--muted);
   font-size: 0.8rem;
 }
@@ -1109,9 +1135,15 @@ select {
 
 .limitations {
   font-size: 0.875rem;
+  font-weight: 400;
   color: var(--muted);
   margin: 12px 0 0;
-  max-width: 90ch;
+  max-width: 56ch;
+}
+
+/* The data note under the UN page: a footnote, kept to a readable line */
+.data-note {
+  max-width: 56ch;
 }
 
 /* ── Metric cards ───────────────────────────────────────────────────────── */
@@ -1148,6 +1180,21 @@ select {
   }
   .metric:nth-child(5) {
     grid-column: 1 / -1;
+  }
+}
+
+/* Four metrics (a result, where tone balance leads the record above): one row, or 2 + 2 on a phone */
+.metrics.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metrics.four .metric {
+  grid-column: auto;
+}
+
+@media (max-width: 560px) {
+  .metrics.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1222,10 +1269,24 @@ mark.hostile,
   box-shadow: inset 0 -2px 0 var(--hostile-line);
 }
 
+/* Cooperative words carry a dotted line where hostile ones carry a solid one, so the two read apart without colour
+   (the tints alone are close for red-green colour blindness) */
 mark.cooperative,
 .key.cooperative {
-  background: var(--coop-bg);
-  box-shadow: inset 0 -2px 0 var(--coop-line);
+  background: linear-gradient(90deg, var(--coop-line) 2px, transparent 2px) left bottom / 4px 2px repeat-x,
+    var(--coop-bg);
+}
+
+/* High-contrast modes drop backgrounds and shadows; underlines survive, so the two lines are redrawn as those */
+@media (forced-colors: active) {
+  mark.hostile,
+  .key.hostile {
+    text-decoration: underline solid 2px;
+  }
+  mark.cooperative,
+  .key.cooperative {
+    text-decoration: underline dotted 2px;
+  }
 }
 
 .highlighted {
@@ -1423,6 +1484,23 @@ mark.cooperative,
 .table-wrap.tall {
   max-height: 480px;
   overflow-y: auto;
+}
+
+/* Controls that only phones need, such as a sort menu for a table whose headings scroll out of view */
+.field.narrow-only {
+  display: none;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 560px) {
+  .field.narrow-only {
+    display: flex;
+  }
+}
+
+/* A table of short columns keeps them together instead of spreading across a wide card */
+.table-wrap.narrow {
+  max-width: 760px;
 }
 
 table {
@@ -1782,6 +1860,32 @@ details.table-view[open] summary {
   margin-bottom: 8px;
 }
 
+/* UN page on a phone: the filters folded into one line that says what is shown */
+details.filters > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.filters > summary::-webkit-details-marker {
+  display: none;
+}
+
+.filters-change {
+  flex: none;
+  color: var(--link);
+  font-weight: 500;
+}
+
+details.filters[open] > summary {
+  margin-bottom: 12px;
+}
+
 /* Disclosures open on the long ease (browsers without ::details-content or interpolate-size just open) */
 @media (prefers-reduced-motion: no-preference) {
   details {
@@ -1795,6 +1899,14 @@ details.table-view[open] summary {
   }
   details[open]::details-content {
     block-size: auto;
+  }
+  /* the country picker's suggestions hang below the open filters, so they open at once instead of growing (a
+     growing box that does not clip would spill over the chart) */
+  details.filters::details-content {
+    transition: none;
+  }
+  details.filters[open]::details-content {
+    overflow-y: visible;
   }
 }
 
@@ -2057,6 +2169,25 @@ tr.focused td {
   z-index: 2;
 }
 
+/* + and − in a 3D view's top-right corner (ZoomButtons) */
+.stage-box {
+  position: relative;
+}
+
+.zoom-buttons {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.zoom-buttons .btn {
+  width: 32px;
+  padding: 0;
+}
+
 .year-player {
   display: flex;
   align-items: center;
@@ -2112,35 +2243,49 @@ tr.focused td {
   }
 }
 
-/* Segmented control for switching between views of the same data */
+/* Segmented control for switching between views of the same data, one level under the page's underlined tabs:
+   smaller, on a track, the chosen segment on the sky tint (as the current page in the menu) with a ring in its
+   ink, since the tint alone is too close to the track. Segments wrap to a second row rather than hide. */
 .tabs {
   display: inline-flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: 20px;
 }
 
 .tabs button {
   font: inherit;
   font-weight: 500;
-  font-size: 0.95rem;
-  min-height: 40px;
-  padding: 8px 12px;
+  font-size: 0.875rem;
+  min-height: 34px;
+  padding: 4px 14px;
   border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 999px;
   background: none;
   color: var(--ink-2);
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .tabs button[aria-selected="true"] {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
+  color: var(--tint-ink);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--tint-ink);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .tabs button:not([aria-selected="true"]):hover {
+    color: var(--ink);
+  }
+}
+
+/* inside the track, in the link blue, which keeps 4.5:1 on the track where the sky blue would not */
 .tabs button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline: 2px solid var(--link);
+  outline-offset: 0;
 }
 
 .hall3d {

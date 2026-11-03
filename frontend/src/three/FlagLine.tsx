@@ -20,6 +20,7 @@ import { speakerFlag, speakerName } from "../lib/history";
 import { baseHeight, textSprite } from "./labels";
 import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
 import { useStage } from "./useStage";
+import ZoomButtons from "./ZoomButtons";
 import { useTip } from "./useTip";
 
 export type FlagMode = "chosen" | "top" | "bottom";
@@ -237,6 +238,7 @@ export default function FlagLine({ matrix, metricLabel, format, year, onYearChan
       <div className="flags3d-view">
         <div className="flags3d-stage" ref={ref} role="img"
           aria-label={`Flags on poles: ${metricLabel} in ${year}, one pole per country. Taller means a higher value.`} />
+        <ZoomButtons stage={stage} />
         {tipCode !== null && tipSlot && (
           <div className="tooltip view3d-tip" ref={tip.ref}>
             <div className="year">{speakerName(tipCode, year, names[tipCode] ?? tipCode)} · {year}</div>

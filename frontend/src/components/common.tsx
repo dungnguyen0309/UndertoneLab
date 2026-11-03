@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import type { Span } from "../api/types";
 
 export function Notice({ kind = "info", children, onRetry, action }: {
@@ -19,11 +20,12 @@ export function Loading({ label = "Loading…" }: { label?: string }) {
   return <p className="muted" role="status" aria-live="polite">{label}</p>;
 }
 
+/** The one caveat that changes how a number is read; the full list lives on the Method page. */
 export function Limitations() {
   return (
     <p className="limitations">
-      Word counts ignore context ("we do not seek confrontation" still counts one hostile word), VADER was built for
-      social media, texts must be in English, and tone is not policy. Read the sentences before trusting a number.
+      Word counts ignore context: &quot;we do not seek confrontation&quot; still counts one hostile word. Read the sentences
+      before trusting a number, and see the <Link to="/method">method&apos;s limitations</Link>.
     </p>
   );
 }

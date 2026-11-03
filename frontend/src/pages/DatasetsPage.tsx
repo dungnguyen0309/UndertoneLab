@@ -51,7 +51,9 @@ export default function DatasetsPage() {
                 <label htmlFor="dataset-keywords">Keywords to track</label>
                 <input id="dataset-keywords" type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)}
                   aria-describedby="dataset-keywords-hint" />
-                <span className="hint" id="dataset-keywords-hint">Separate with commas; end a word with * for any ending.</span>
+                <span className="hint" id="dataset-keywords-hint">
+                  Three examples to start from. Separate with commas; end a word with * for any ending.
+                </span>
               </div>
             </div>
             <p className="small muted">

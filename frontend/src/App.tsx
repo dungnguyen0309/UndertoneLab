@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router";
 import { api, withRetry } from "./api/client";
 import { Loading, Notice } from "./components/common";
@@ -24,19 +24,25 @@ const NAV = [
 export default function App() {
   const meta = useAsync(() => withRetry(() => api.meta()), []);
   useSmoothWheel();
-  // The menu is a drawer under the header, opened by a round button, at every screen size
+  // The menu is a drawer under the header, opened by a round button, at every screen size. While it is open the
+  // page behind it is inert, so Tab stays in the header, and Escape closes it from anywhere.
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeMenu = () => setMenuOpen(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
   return (
     <BrowserRouter>
       <a className="skip-link" href="#main">Skip to content</a>
-      <header className="site-header" onKeyDown={(e) => {
-        if (e.key === "Escape" && menuOpen) {
-          closeMenu();
-          menuButton.current?.focus();
-        }
-      }}>
+      <header className="site-header">
         <div className="container">
           <NavLink to="/" className="brand">
             <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
@@ -61,7 +67,7 @@ export default function App() {
           {menuOpen && <div className="nav-scrim" onClick={closeMenu} />}
         </div>
       </header>
-      <main id="main" className="container">
+      <main id="main" className="container" inert={menuOpen}>
         {meta.data ? (
           <MetaContext.Provider value={meta.data}>
             <Suspense fallback={<Loading />}>
@@ -82,7 +88,7 @@ export default function App() {
           <Loading />
         )}
       </main>
-      <footer className="site-footer">
+      <footer className="site-footer" inert={menuOpen}>
         <div className="container">
           <span>Built by Tuan Dung Nguyen</span>
           <span>UN data: Jankin, Baturo &amp; Dasandi (2024), <i>Journal of Peace Research</i></span>
@@ -94,6 +100,8 @@ export default function App() {
         </div>
         <div className="footer-wordmark" aria-hidden="true" />
       </footer>
+      {/* floating controls (the pinned player) render here, so the open menu makes them inert with the page */}
+      <div id="overlays" inert={menuOpen} />
     </BrowserRouter>
   );
 }

@@ -26,6 +26,14 @@ export function StopIcon() {
   return <svg {...base}><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor" stroke="none" /></svg>;
 }
 
+export function PlusIcon() {
+  return <svg {...base}><path d="M8 3.5v9M3.5 8h9" /></svg>;
+}
+
+export function MinusIcon() {
+  return <svg {...base}><path d="M3.5 8h9" /></svg>;
+}
+
 export function CloseIcon() {
   return <svg {...base}><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" /></svg>;
 }

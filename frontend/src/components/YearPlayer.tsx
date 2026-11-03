@@ -26,7 +26,7 @@ export default function YearPlayer({ years, year, onYearChange, label }: {
 
   return (
     <div className="year-player">
-      <button type="button" className="btn small primary" aria-pressed={playing} onClick={() => {
+      <button type="button" className="btn small" aria-pressed={playing} onClick={() => {
         if (!playing && year >= last) onYearChange(first);
         setPlaying(!playing);
       }}>{playing ? <><PauseIcon /> Pause</> : <><PlayIcon /> Play years</>}</button>

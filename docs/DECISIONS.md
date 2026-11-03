@@ -324,8 +324,8 @@ over; its layout and colour did not, since the white cards and the deep-blue ban
 - A scroll-linked animation makes its element the containing block for anything `position: fixed` inside it, so the
   pinned player now renders at the page root through a portal instead of inside its card.
 - Not taken: the custom cursor (a data tool needs the real pointer), the smooth-scroll takeover (it fights the
-  sticky tabs, the tables' own scrolling and the 3D views), tracked uppercase text, marquees, the side rail and the
-  per-page colours.
+  sticky tabs, the tables' own scrolling and the 3D views; later taken at the owner's request, see §29), tracked
+  uppercase text, marquees, the side rail and the per-page colours.
 
 ## 26. A measured design pass
 Every page was opened at 1440, 768 and 390 pixels on the production build and measured against a set of rules for
@@ -369,3 +369,47 @@ yellow and does not match the swatch).
 - A measured design pass after the palette change found nothing new to fix. The rule against a terracotta or rust
   accent was allowed for the amber red buttons, which are the owner's palette; the remaining warnings are the
   banner's colour share, the first-use datasets row (§26) and the chart library's hidden measuring text.
+
+## 29. A design critique and its fixes
+A review against Nielsen's ten heuristics scored the app 27 of 40, with an automated scan and an overlay on the
+pages beside it. Each main claim was checked against the code first; two did not hold and were left alone (the
+"edit" link's size, which passes as inline text, and the results landing under the header, which a scroll margin
+already prevents).
+- The pasted text and the last result are kept in session storage, so going to the UN page and back, or reloading,
+  no longer loses them. A result brought back this way does not scroll the page.
+- A plain mouse wheel over the flags, the Assembly hall, Rhetoric space and the sentence landscape scrolls the page
+  like anywhere else; it used to zoom the view and stop the page. They zoom with Ctrl or ⌘ and the wheel, a
+  trackpad pinch, two fingers, or + and − buttons in the view's corner, which also give the keyboard a way in.
+- Cooperative words carry a dotted line where hostile words carry a solid one. The tints alone are almost the same
+  for red-green colour blindness (about 1 apart in OKLab, against 7 for the two line colours).
+- The verdict line says where the tone balance sits against the UN average ("Tone balance, below the UN average
+  (+0.27)"), which explains how "Leaning conciliatory" can still rank low among UN speeches. The verdict itself
+  stays absolute (§19). The metric strip under it leaves out tone balance, which the record already leads with.
+- While the menu is open the page behind is inert, so Tab stays in the header, and Escape works from anywhere.
+- One red button per screen: Analyze, Create dataset, Upload and Save dictionaries. Listen, Pause, Resume and
+  Play years are default buttons with their icons, so no button red sits in a card of hostile red words.
+- A second review of these changes, each finding checked again before fixing, led to: a kept result is dropped
+  when the dictionaries have changed since it was scored; Try again moves focus to the text box before it goes
+  away; the chosen segment of a second-level tab control has a 1px ring in its ink (the tint alone was 1.03:1
+  against the track), and the segments wrap rather than hide; the solid and dotted lines are redrawn as
+  underlines in Windows high-contrast mode; the pinned player sits in a layer the open menu makes inert; on a
+  phone the sentence table has a sort menu, because its headings scroll out of view.
+- The owner swapped the buttons' amber red for a true crimson, #c8102e (hover #a80d26), with no orange in it. Its
+  cloud-white labels read at 5.8:1, up from 4.6:1. Sky blue and cloudy white stay the main colours (§27).
+- The tone record's bars are red, grey and blue around zero, split at ±0.1 where the verdict's words change.
+- Smaller fixes:
+  - A failed Analyze offers Try again when a second try can help (a lost connection, a busy or failing server).
+  - The Close reading speech is in the address (`?r=RUS-2025`), so a reading can be linked to and cited, and the
+    Method page says how to cite the data and the scores.
+  - The sentence table sorts by its column headings, as the word counts do.
+  - Second-level tabs are a smaller segmented control on the sky tint, apart from the underlined page tabs.
+  - Lines of text stop at 56ch (about 78 characters of Jost); the limitations note is two short sentences with a link to
+    the full list; small grey text is weight 400; the side margin grows from 16px to 32px on wide screens; the
+    flagpoles at the banner's foot are stronger.
+  - On a phone the UN page's filters fold into one line that says what is shown, so the chart starts on the first
+    screen.
+  - Close reading says "120 sentences, 119 scored" when the full text holds a sentence too short to score (Listen
+    reads all 120); "Weigh again" is "Replay"; the datasets' keyword field says it starts with examples.
+- Left as they are, by the owner's earlier choices: the page-open motion (§25), the menu button's place and the
+  banner. The wheel glide that §25 left out was added later at the owner's request (`frontend/src/lib/media.ts`);
+  it steps aside for scroll boxes, number fields, pinch zoom and the views above when Ctrl is held.

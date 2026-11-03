@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type FormEvent, type Ref } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
 import { Link } from "react-router";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { AnalyzeResult, Reading, SentenceScore } from "../api/types";
 import { HighlightKeys, Limitations, Notice } from "../components/common";
 import { ListenBar, MiniPlayer, ReadingText, useFlatReading } from "../components/Listen";
@@ -29,22 +29,44 @@ export const SAMPLE_TEXT =
   "Valdoria extends the hand of friendship to every nation willing to engage on the basis of equality and goodwill.";
 
 type SortKey = "original" | "hostile" | "negative" | "cooperative";
-const SORTS: Record<SortKey, string> = {
-  hostile: "Most hostile",
-  negative: "Most negative (VADER)",
-  cooperative: "Most cooperative",
-  original: "Original order",
-};
+
+// The text and the last result outlive a visit to another page and a reload, for as long as the tab stays open.
+// Storage can be full or blocked; the page then works as before and forgets on leaving.
+// Raise the version when the shape of AnalyzeResult changes, so an open tab never restores an old shape.
+const KEPT = "dla.analyze.v1";
+
+function kept<T>(key: string, fallback: T): T {
+  try {
+    const raw = window.sessionStorage.getItem(`${KEPT}.${key}`);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function keep(key: string, value: unknown) {
+  try {
+    window.sessionStorage.setItem(`${KEPT}.${key}`, JSON.stringify(value));
+  } catch {
+    /* see above */
+  }
+}
 
 export default function AnalyzePage() {
   useDocumentTitle("");
   const meta = useMeta();
   const dictionaries = useDictionaries();
   const textId = useId();
-  const [text, setText] = useState("");
-  const [analyzedText, setAnalyzedText] = useState("");
-  const [result, setResult] = useState<AnalyzeResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [text, setText] = useState(() => kept("text", ""));
+  // A kept result comes back only while the dictionaries are the ones it was scored with
+  const [last] = useState(() => {
+    const k = kept<{ result: AnalyzeResult; text: string; custom?: unknown } | null>("result", null);
+    return k && JSON.stringify(k.custom ?? null) === JSON.stringify(dictionaries.custom ?? null) ? k : null;
+  });
+  const [analyzedText, setAnalyzedText] = useState(last?.text ?? "");
+  const [result, setResult] = useState<AnalyzeResult | null>(last?.result ?? null);
+  // `retry`: the error came from sending the text and may pass, so the notice offers Try again
+  const [error, setError] = useState<{ message: string; retry?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [useContext, setUseContext] = useState(false);
@@ -53,9 +75,15 @@ export default function AnalyzePage() {
   const results = useRef<HTMLElement>(null);
   const textBox = useRef<HTMLTextAreaElement>(null);
 
-  // A new result: bring it into view and move focus to it, so keyboard and screen-reader users land on it too
+  useEffect(() => keep("text", text), [text]);
+  useEffect(() => keep("result", result && { result, text: analyzedText, custom: dictionaries.custom ?? null }),
+    [result, analyzedText]);
+
+  // A new result: bring it into view and move focus to it, so keyboard and screen-reader users land on it too.
+  // A result brought back from the session leaves the page where it opens.
+  const restored = useRef(result);
   useEffect(() => {
-    if (!result) return;
+    if (!result || result === restored.current) return;
     stopGlide();
     results.current?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" });
     results.current?.focus({ preventScroll: true });
@@ -80,7 +108,9 @@ export default function AnalyzePage() {
       setResult(r);
       setAnalyzedText(text);
     } catch (err) {
-      setError(errorText(err));
+      // A rejected text (too short, too long) fails again unchanged; a lost connection or a server error may not
+      const retry = !(err instanceof ApiError) || err.status === 0 || err.status === 429 || err.status >= 500;
+      setError({ message: errorText(err), retry });
     } finally {
       setBusy(false);
     }
@@ -89,7 +119,7 @@ export default function AnalyzePage() {
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > meta.limits.max_upload_bytes) {
-      setError(`That file is larger than ${Math.round(meta.limits.max_upload_bytes / 1_000_000)} MB. Paste its text instead.`);
+      setError({ message: `That file is larger than ${Math.round(meta.limits.max_upload_bytes / 1_000_000)} MB. Paste its text instead.` });
       return;
     }
     setBusy(true);
@@ -100,7 +130,7 @@ export default function AnalyzePage() {
       setFileNote(`Loaded ${extracted.filename}${extracted.pages ? ` (${extracted.pages} pages)` : ""}` +
         `${extracted.truncated ? `, shortened to the first ${meta.limits.max_text_chars.toLocaleString()} characters` : ""}.`);
     } catch (err) {
-      setError(errorText(err));
+      setError({ message: errorText(err) });
     } finally {
       setBusy(false);
     }
@@ -172,7 +202,13 @@ export default function AnalyzePage() {
         </div>
       </form>
 
-      {error && <Notice kind="error">{error}</Notice>}
+      {error && (
+        // Try again goes away while it sends, so focus first moves to the text box, which stays
+        <Notice kind="error" onRetry={error.retry ? () => {
+          textBox.current?.focus({ preventScroll: true });
+          void analyze();
+        } : undefined}>{error.message}</Notice>
+      )}
       <p className="visually-hidden" role="status">{announcement}</p>
       {result && <Results result={result} text={analyzedText} sectionRef={results} onEdit={() => {
         textBox.current?.focus({ preventScroll: true });
@@ -198,7 +234,11 @@ function Results({ result, text, sectionRef, onEdit }: {
             )}
             <div>
               <h2 className="verdict-lead">{verdict(result.metrics.tone_balance)}</h2>
-              {result.metrics.tone_balance !== null && <span className="small muted">Tone balance</span>}
+              {result.metrics.tone_balance !== null && (
+                <span className="small muted">
+                  Tone balance{standing(result.metrics.tone_balance, base?.averages.tone_balance)}
+                </span>
+              )}
             </div>
           </div>
           <button type="button" className="btn small" onClick={onEdit}>Edit the text</button>
@@ -210,7 +250,7 @@ function Results({ result, text, sectionRef, onEdit }: {
               Among the {base.statements.toLocaleString()} UN General Debate statements from {base.first_year}–{base.last_year},
               its tone balance is {rank(base.tone_share_below)}. It uses hostile words more often than
               {" "}{share(base.hostility_share_below)} of them, and cooperative words more often than{" "}
-              {share(base.cooperation_share_below)}.
+              {share(base.cooperation_share_below)} of them.
             </p>
             {base.tone_histogram.length > 0 && result.metrics.tone_balance !== null && (
               <ToneRecord histogram={base.tone_histogram} value={result.metrics.tone_balance}
@@ -221,8 +261,9 @@ function Results({ result, text, sectionRef, onEdit }: {
         )}
         {result.warnings.map((w) => <Notice key={w} kind="warn">{w}</Notice>)}
       </div>
+      {/* tone balance leads the record above, so the strip leaves it out */}
       <MetricCards metrics={result.metrics} compareTo={base?.averages}
-        compareLabel={base ? "UN avg" : undefined} />
+        compareLabel={base ? "UN avg" : undefined} skip="tone_balance" />
       <p className="muted small">
         {plural(result.counts.words, "word")} · {plural(result.counts.sentences, "sentence")} ·{" "}
         {result.counts.hostile_hits.toLocaleString("en")} hostile and {result.counts.coop_hits.toLocaleString("en")} cooperative
@@ -295,6 +336,15 @@ function verdict(toneBalance: number | null) {
   return "Clearly confrontational";
 }
 
+/** The tone balance against the UN average, after its label: ", below the UN average (+0.27)". A fact in ink, not
+ *  a second verdict: it says why "Leaning conciliatory" can still rank low among UN speeches. */
+function standing(value: number, average: number | null | undefined) {
+  if (average === null || average === undefined) return "";
+  const shown = formatMetric("tone_balance", average);
+  const side = shown === formatMetric("tone_balance", value) ? "level with" : value > average ? "above" : "below";
+  return `, ${side} the UN average (${shown})`;
+}
+
 /** Where a value sits among the UN statements: "higher than 87% of them", "higher than all of them". */
 function rank(shareBelow: number) {
   if (shareBelow >= 0.995) return "higher than all of them";
@@ -353,6 +403,14 @@ function SentenceTable({ sentences, contextUsed, focus }: {
       "cooperative_words", ...(contextUsed ? ["context_label"] : [])]));
   };
 
+  // Sortable headings as on the dictionaries' word counts: # and VADER run up (most negative first), the counts down
+  const header = (key: SortKey, text: ReactNode) => (
+    <th className="num"
+      aria-sort={sort === key ? (key === "original" || key === "negative" ? "ascending" : "descending") : "none"}>
+      <button type="button" className="th-sort" onClick={() => setSort(key)}>{text}</button>
+    </th>
+  );
+
   return (
     <div className="card">
       <div className="card-head">
@@ -361,26 +419,27 @@ function SentenceTable({ sentences, contextUsed, focus }: {
       </div>
       <p className="muted small">
         VADER rates each sentence from −1 (negative) to +1 (positive); Hostile and Cooperative count its dictionary
-        words.
+        words. Select a column heading to sort by it.
       </p>
-      <fieldset className="row" style={{ border: 0, padding: 0, margin: "0 0 10px" }}>
-        <legend className="visually-hidden">Sort sentences</legend>
-        {(Object.keys(SORTS) as SortKey[]).map((key) => (
-          <label key={key} className="checkbox small">
-            <input type="radio" name="sentence-sort" checked={sort === key} onChange={() => setSort(key)} />
-            {SORTS[key]}
-          </label>
-        ))}
-      </fieldset>
+      {/* on a phone the headings scroll out of view with the table, so the sorts are also a menu */}
+      <label className="field inline narrow-only">
+        Sort by
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          <option value="hostile">Most hostile</option>
+          <option value="negative">Most negative (VADER)</option>
+          <option value="cooperative">Most cooperative</option>
+          <option value="original">Original order</option>
+        </select>
+      </label>
       <div className="table-wrap tall" tabIndex={0} role="region" aria-label="Sentence scores">
         <table>
           <thead>
             <tr>
-              <th className="num">#</th>
+              {header("original", <>#<span className="visually-hidden"> (original order)</span></>)}
               <th>Sentence</th>
-              <th className="num">VADER</th>
-              <th className="num">Hostile</th>
-              <th className="num">Cooperative</th>
+              {header("negative", "VADER")}
+              {header("hostile", "Hostile")}
+              {header("cooperative", "Cooperative")}
               {contextUsed && <th>Context model</th>}
             </tr>
           </thead>

@@ -51,6 +51,10 @@ export interface Stage {
    */
   frame: (half: { x: number; y: number }, target: [number, number, number], direction: [number, number, number],
     options?: { smooth?: boolean }) => void;
+  /** Whether the view zooms at all (the views built around one object, such as the scale, do not). */
+  zoomable: boolean;
+  /** Move the camera closer (factor under 1) or further away, within the view's limits: the + and − buttons. */
+  zoomBy: (factor: number) => void;
   dispose: () => void;
 }
 
@@ -87,10 +91,24 @@ export function createStage(container: HTMLElement, options: Options = {}): Stag
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
-  controls.enableZoom = options.zoom ?? true;
+  const zoomable = options.zoom ?? true;
+  controls.enableZoom = zoomable;
   controls.minDistance = options.minDistance ?? 1.4;
   controls.maxDistance = options.maxDistance ?? 8;
   controls.update();
+
+  // A plain mouse wheel over the view scrolls the page, as anywhere else on it. Zooming takes Ctrl or ⌘ with the
+  // wheel, a trackpad pinch (which browsers send as Ctrl + wheel), two fingers on a touch screen, or the + and −
+  // buttons. The container sees the wheel before the canvas (capture) to decide, and after it to put zoom back for
+  // touch.
+  const gateWheel = (e: WheelEvent) => {
+    controls.enableZoom = zoomable && (e.ctrlKey || e.metaKey);
+  };
+  const ungateWheel = () => {
+    controls.enableZoom = zoomable;
+  };
+  container.addEventListener("wheel", gateWheel, { capture: true, passive: true });
+  container.addEventListener("wheel", ungateWheel, { passive: true });
 
   const reducedMotion = prefersReducedMotion();
   const frameCallbacks: ((seconds: number, delta: number) => void)[] = [];
@@ -228,8 +246,29 @@ export function createStage(container: HTMLElement, options: Options = {}): Stag
       applyFrame(frameOptions.smooth);
       start();
     },
+    zoomable,
+    zoomBy: (factor) => {
+      // mid-glide (a re-framing or an earlier press), zoom from where the camera is heading, not from half-way
+      const target = (glide?.target ?? controls.target).clone();
+      const offset = (glide?.position ?? camera.position).clone().sub(target);
+      const distance = Math.min(controls.maxDistance, Math.max(controls.minDistance, offset.length() * factor));
+      const position = target.clone().addScaledVector(offset.normalize(), distance);
+      userMoved = true;            // a resize no longer re-frames the view
+      if (reducedMotion) {
+        glide = null;
+        camera.position.copy(position);
+        controls.target.copy(target);
+        controls.update();
+      } else {
+        glide = { position, target };
+      }
+      dirty = true;
+      start();
+    },
     dispose: () => {
       cancelAnimationFrame(raf);
+      container.removeEventListener("wheel", gateWheel, { capture: true });
+      container.removeEventListener("wheel", ungateWheel);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);

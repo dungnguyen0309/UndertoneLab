@@ -5,6 +5,7 @@ import { afterEach } from "vitest";
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 // jsdom lacks these browser APIs that the charts and theme hook use.

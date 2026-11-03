@@ -26,6 +26,7 @@ import { baseHeight, textSprite } from "./labels";
 import { magnitude, scaleFor } from "./scales";
 import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
 import { useStage } from "./useStage";
+import ZoomButtons from "./ZoomButtons";
 import { useTip } from "./useTip";
 
 export type SeatOrder = "value" | "name";
@@ -381,6 +382,7 @@ export default function AssemblyHall({ matrix, metricLabel, format, year, onYear
       <div className="flags3d-view">
         <div className="hall3d-stage" ref={ref} role="img" aria-label={`The General Assembly hall in ${year}: `
           + `${plural(present.seated.length, "delegation")}, each desk's column showing ${metricLabel}.`} />
+        <ZoomButtons stage={stage} />
         {tip.item !== null && tipCountry && (
           <div className="tooltip view3d-tip" ref={tip.ref}>
             <div className="year">{speakerName(tipCountry.code, year, names[tipCountry.code] ?? tipCountry.name)} · {year}</div>

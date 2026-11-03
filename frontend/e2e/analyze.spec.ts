@@ -5,7 +5,8 @@ test("analyzes the sample text", async ({ page }) => {
   const noErrors = watchErrors(page);
   await analyzeSample(page);
 
-  await expect(page.getByTestId("metric-tone_balance")).toContainText(/[+−]\d\.\d\d/);
+  await expect(page.locator(".verdict-figure")).toContainText(/[+−]\d\.\d\d/);     // tone balance leads the record
+  await expect(page.getByTestId("metric-tone_balance")).toHaveCount(0);            // so the strip leaves it out
   await expect(page.getByTestId("baseline-sentence")).toContainText(/hostile words more often than/);
   await expect(page.getByText(/This is a short text/)).toBeVisible();      // the sample is under 500 words
   await expect(page.getByTestId("highlighted-text").locator("mark.hostile").first()).toBeVisible();
@@ -13,7 +14,7 @@ test("analyzes the sample text", async ({ page }) => {
   await page.getByRole("tab", { name: "Sentences" }).click();
   const sentences = page.getByRole("table").last();
   await expect(sentences.getByRole("row")).toHaveCount(11);           // header + 10 sentences
-  await page.getByLabel("Most negative (VADER)").check();
+  await sentences.getByRole("button", { name: "VADER" }).click();             // sort by the column heading
   await expect(sentences.getByRole("row").nth(1)).toContainText("−0.");    // a real minus sign
   await expectNoHorizontalScroll(page);
   noErrors();

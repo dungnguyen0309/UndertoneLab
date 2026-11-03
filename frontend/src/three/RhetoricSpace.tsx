@@ -23,6 +23,7 @@ import { createFlagPole, flagTexture } from "./flags";
 import { textSprite } from "./labels";
 import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
 import { useStage } from "./useStage";
+import ZoomButtons from "./ZoomButtons";
 import { useTip } from "./useTip";
 
 export interface SpaceSeries {
@@ -206,8 +207,11 @@ export default function RhetoricSpace({ series, onPick }: Props) {
           <li key={s.key}><span className="line-key" style={{ borderColor: s.color }} />{s.label}</li>
         ))}
       </ul>
-      <div className="space3d-stage" ref={ref} role="img"
-        aria-label="3D view of each country's hostile and cooperative words per 1,000 words over the years." />
+      <div className="stage-box">
+        <div className="space3d-stage" ref={ref} role="img"
+          aria-label="3D view of each country's hostile and cooperative words per 1,000 words over the years." />
+        <ZoomButtons stage={stage} />
+      </div>
       {tip.item && (
         <div className="tooltip space3d-tip" ref={tip.ref}>
           <div className="year">{tip.item.label} · {tip.item.year}</div>
@@ -218,7 +222,7 @@ export default function RhetoricSpace({ series, onPick }: Props) {
       )}
       <div className="row space3d-bar">
         <button type="button" className="btn small" onClick={() => stage?.frame(FIT[0], FIT[1], HOME)}>Reset view</button>
-        <span className="small muted">{extent.count} points · drag sideways to turn, pinch or scroll to zoom</span>
+        <span className="small muted">{extent.count} points · drag sideways to turn; pinch, Ctrl + scroll or + and − to zoom</span>
       </div>
     </div>
   );

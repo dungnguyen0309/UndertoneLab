@@ -96,6 +96,12 @@ export default function MethodPage() {
           <p>
             Everything on this site is available as a REST API, documented at <a href="/api/docs">/api/docs</a>.
           </p>
+
+          <h2>How to cite</h2>
+          <p>
+            Cite the UN speeches as {meta.citation}. Cite the scores as Nguyen, T. D. (2026). <i>Undertone Lab</i>{" "}
+            (version {meta.version}) [Computer software]. {window.location.origin}, with the date you used it.
+          </p>
         </div>
       </div>
     </>

@@ -6,12 +6,27 @@ test("the analysis shows a 3D sentence landscape", async ({ page }) => {
   await analyzeSample(page);
   await expect(page.locator('.balance3d[data-ready="true"] canvas')).toBeVisible();
   await expect(page.getByText(/Each block is one word/)).toBeVisible();
-  await page.getByRole("button", { name: "Weigh again" }).click();
+  await page.getByRole("button", { name: "Replay" }).click();
   await expect(page.locator('.balance3d[data-ready="true"] canvas')).toBeVisible();
   // the landscape sits with the sentence scores, on the results' second tab
   await page.getByRole("tab", { name: "Sentences" }).click();
   await expect(page.locator('.landscape3d[data-ready="true"] canvas')).toBeVisible();
   noErrors();
+});
+
+test("a plain mouse wheel over a 3D view scrolls the page; the view zooms with its buttons", async ({ page, isMobile }) => {
+  test.skip(isMobile, "phones scroll and pinch by touch");
+  await page.goto("/un?v=year");
+  const canvas = page.locator('.flags3d[data-ready="true"] canvas');
+  await expect(canvas).toBeVisible();
+  await canvas.scrollIntoViewIfNeeded();
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(before + 100);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(canvas).toBeVisible();
 });
 
 test("the 3D flag line plays through the years and switches views", async ({ page }) => {

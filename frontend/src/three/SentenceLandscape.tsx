@@ -16,6 +16,7 @@ import { textSprite } from "./labels";
 import { scaleFor } from "./scales";
 import { disposeGroup, isSmallScreen, pointerPicking } from "./stage";
 import { useStage } from "./useStage";
+import ZoomButtons from "./ZoomButtons";
 import { useTip } from "./useTip";
 
 interface Props {
@@ -117,8 +118,11 @@ export default function SentenceLandscape({ sentences, onPick }: Props) {
         <span><i className="globe3d-swatch" style={{ background: COOPERATIVE }} /> cooperative words</span>
         <span>tile colour: VADER sentiment (red negative · blue positive)</span>
       </div>
-      <div className="landscape3d-stage" ref={ref} role="img"
-        aria-label={`3D landscape of ${sentences.length} sentences: columns show hostile and cooperative words. The table below lists every sentence.`} />
+      <div className="stage-box">
+        <div className="landscape3d-stage" ref={ref} role="img"
+          aria-label={`3D landscape of ${sentences.length} sentences: columns show hostile and cooperative words. The table below lists every sentence.`} />
+        <ZoomButtons stage={stage} />
+      </div>
       {tip.item && (
         <div className="tooltip landscape3d-tip" ref={tip.ref}>
           <div className="year">Sentence {tip.item.index + 1}</div>

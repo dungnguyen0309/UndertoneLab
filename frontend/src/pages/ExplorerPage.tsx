@@ -11,7 +11,7 @@ import TrendChart from "../components/TrendChart";
 import { PALETTE, useColorScheme, useCountryColors } from "../lib/colors";
 import { fixed, formatDelta, formatMetric, KEYWORD_PREFIX, metricLabel, plural, tickFormat } from "../lib/format";
 import { useAsync, useDocumentTitle, useMeta } from "../lib/hooks";
-import { scrollBehavior, stopGlide } from "../lib/media";
+import { scrollBehavior, stopGlide, useMediaQuery } from "../lib/media";
 import { speakerFlag, speakerName } from "../lib/history";
 import { useSpeech } from "../lib/speech";
 
@@ -76,6 +76,8 @@ function Explorer({ summary }: { summary: UNSummary }) {
   };
 
   const colors = useCountryColors(countries);
+  const phone = useMediaQuery("(max-width: 560px)");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const names = useMemo(() => Object.fromEntries(summary.countries.map((c) => [c.code, c.name])), [summary]);
   const label = metricLabel(metric, meta.metrics);
 
@@ -91,7 +93,9 @@ function Explorer({ summary }: { summary: UNSummary }) {
 
   const view: View = VIEWS.some(([key]) => key === params.get("v")) ? params.get("v") as View : "trend";
   useDocumentTitle(`${VIEWS.find(([key]) => key === view)![1]} · UN General Debate`);
-  const [reading, setReading] = useState<{ country: string; year: number } | null>(null);
+  // The speech in Close reading, kept in the address (?r=RUS-2025) so a reading can be linked to and cited
+  const [readCode, readParamYear] = (params.get("r") ?? "").split("-");
+  const reading = readCode ? { country: readCode, year: Number(readParamYear) || 0 } : null;
   const [year, setYear] = useState(end);     // the one year shown by the flags, the hall and the ranking
   useEffect(() => setYear(end), [end]);
   const [yearView, setYearView] = useState<"flags" | "hall">("flags");
@@ -125,8 +129,7 @@ function Explorer({ summary }: { summary: UNSummary }) {
   /** Open a speech from anywhere on the page: Close reading shows it, the page goes there and focus moves to its
    *  heading. Any delegation can be read, whether or not it is in the chart. */
   const openSpeech = useCallback((code: string, y: number) => {
-    update({ v: "read" });
-    setReading({ country: code, year: y });
+    update({ v: "read", r: `${code}-${y}` });
     setArrivals((n) => n + 1);
   }, [params]);
   // Once Close reading has rendered with the chosen speech, go there and move focus to its heading
@@ -150,8 +153,24 @@ function Explorer({ summary }: { summary: UNSummary }) {
     const others = summary.countries.filter((c) => !countries.includes(c.code)).sort((a, b) => a.name.localeCompare(b.name));
     return { inChart, others };
   }, [countries.join(","), summary]);
-  const readYear = reading && reading.country === readCountry && readYears.includes(reading.year)
-    ? reading.year : readYears[0];
+  // A linked year is trusted until the all-country years arrive (the chart's own years may not include it)
+  const readYear = reading && reading.country === readCountry
+    && (readYears.includes(reading.year) || (!matrix.data && reading.year > 0)) ? reading.year : readYears[0];
+
+  const filters = (
+    <>
+      <div className="row">
+        <CountryPicker options={summary.countries} value={countries} max={max} colors={colors}
+          onChange={(codes) => update({ c: codes.join(",") })} />
+        <YearInput id="year-from" label="From" value={start} min={firstYear} max={lastYear} invalid={!rangeOk}
+          onCommit={(y) => update({ from: String(y) })} />
+        <YearInput id="year-to" label="To" value={end} min={firstYear} max={lastYear} invalid={!rangeOk}
+          onCommit={(y) => update({ to: String(y) })} />
+        <MetricSelect value={metric} onChange={(m) => update({ m })} keywords={summary.keywords} />
+      </div>
+      {!rangeOk && <p className="field-error" role="alert">The start year is after the end year.</p>}
+    </>
+  );
 
   return (
     <>
@@ -166,18 +185,19 @@ function Explorer({ summary }: { summary: UNSummary }) {
         <Notice kind="warn">Demo data: these are fictional countries and generated texts, not real UN speeches.</Notice>
       )}
 
-      <div className="card">
-        <div className="row">
-          <CountryPicker options={summary.countries} value={countries} max={max} colors={colors}
-            onChange={(codes) => update({ c: codes.join(",") })} />
-          <YearInput id="year-from" label="From" value={start} min={firstYear} max={lastYear} invalid={!rangeOk}
-            onCommit={(y) => update({ from: String(y) })} />
-          <YearInput id="year-to" label="To" value={end} min={firstYear} max={lastYear} invalid={!rangeOk}
-            onCommit={(y) => update({ to: String(y) })} />
-          <MetricSelect value={metric} onChange={(m) => update({ m })} keywords={summary.keywords} />
-        </div>
-        {!rangeOk && <p className="field-error" role="alert">The start year is after the end year.</p>}
-      </div>
+      {phone ? (
+        // On a phone the filters fold into one line that says what is shown, so the chart starts on the first screen
+        <details className="card filters" open={filtersOpen || !rangeOk}
+          onToggle={(e) => setFiltersOpen(e.currentTarget.open)}>
+          <summary>
+            <span>{countries.map((c) => names[c] ?? c).join(", ") || "No countries"} · {start}–{end} · {label}</span>
+            <span className="filters-change">Change</span>
+          </summary>
+          {filters}
+        </details>
+      ) : (
+        <div className="card">{filters}</div>
+      )}
 
       <div id="views" />
       <div className="view-tabs" role="tablist" aria-label="Views of the speeches" onKeyDown={(e) => {
@@ -337,12 +357,12 @@ function Explorer({ summary }: { summary: UNSummary }) {
             country={readCountry}
             year={readYear}
             years={readYears}
-            onChange={(country, y) => setReading({ country, year: y ?? 0 })}
+            onChange={(country, y) => update({ r: y ? `${country}-${y}` : country })}
           />
         )}
       </div>
 
-      <p className="muted small">
+      <p className="muted small data-note">
         Data: {meta.citation}. Texts are the official English versions. CC0 licence.{" "}
         <a href={api.un.exportUrl({})} download>Download all scores (CSV)</a>
       </p>
@@ -648,7 +668,12 @@ function CloseReading({ inChart, others, country, year, years, onChange }: {
                 <h3 className="reading-title">{name}</h3>
                 <p className="muted small">
                   Session {statement.data.session} · {statement.data.year} ·{" "}
-                  {plural(statement.data.counts.words, "word")} · {plural(statement.data.counts.sentences, "scored sentence")}
+                  {plural(statement.data.counts.words, "word")} ·{" "}
+                  {/* the full text can hold a sentence too short to score; Listen counts every sentence it reads */}
+                  {flat.length > statement.data.counts.sentences
+                    && statement.data.country === country && statement.data.year === year
+                    ? `${plural(flat.length, "sentence")}, ${statement.data.counts.sentences.toLocaleString("en")} scored`
+                    : plural(statement.data.counts.sentences, "scored sentence")}
                 </p>
                 {!(fullText.error && !fullText.loading) && <ListenBar speech={speech} what="this speech" barRef={bar} />}
                 {listening && <NowReading sentence={flat[speech.current]} />}

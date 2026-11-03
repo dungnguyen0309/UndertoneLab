@@ -35,7 +35,10 @@ export default function ToneRecord({ histogram, value, average, years, shareBelo
           + (hasAverage ? ` The UN average is ${formatMetric("tone_balance", average)}.` : "")}>
         {histogram.map((n, i) => {
           const h = ((base - top) * n) / max;
-          return <rect key={i} className="tone-record-bar" x={i * band + 1} y={base - h} width={band - 2} height={h} />;
+          // red, grey and blue around zero, split where the verdict's words change (±0.1)
+          const centre = -1 + ((i + 0.5) * 2) / histogram.length;
+          const side = centre <= -0.1 ? " neg" : centre >= 0.1 ? " pos" : "";
+          return <rect key={i} className={`tone-record-bar${side}`} x={i * band + 1} y={base - h} width={band - 2} height={h} />;
         })}
         <line className="tone-record-zero" x1={W / 2} x2={W / 2} y1={base} y2={base + 5} />
         {hasAverage && <line className="tone-record-avg" x1={at(average)} x2={at(average)} y1={top - 4} y2={base} />}
@@ -46,7 +49,8 @@ export default function ToneRecord({ histogram, value, average, years, shareBelo
         <text className="tone-record-axis" x={W} y={H - 4} textAnchor="end">+1 all cooperative</text>
       </svg>
       <figcaption className="small muted">
-        Each bar counts the UN statements of {years} with that tone balance. The blue line marks this text
+        Each bar counts the UN statements of {years} with that tone balance, red where they lean confrontational and
+        blue where they lean conciliatory. The blue line marks this text
         {hasAverage ? <>, the dashed line the UN average ({formatMetric("tone_balance", average)})</> : null}.
       </figcaption>
     </figure>

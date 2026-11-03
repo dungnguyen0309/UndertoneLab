@@ -19,6 +19,12 @@ export async function openFromMenu(page: Page, name: string | RegExp) {
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name }).click();
 }
 
+/** On a phone the UN page's filters fold into one line: open them before using a field (a no-op on wide screens). */
+export async function openFilters(page: Page) {
+  const filters = page.locator("details.filters");
+  if (await filters.count() && await filters.getAttribute("open") === null) await filters.locator("summary").click();
+}
+
 /** Fail the test on any uncaught error in the page. */
 export function watchErrors(page: Page) {
   const errors: string[] = [];

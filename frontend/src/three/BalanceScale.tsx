@@ -292,7 +292,7 @@ export default function BalanceScale({ hostile, cooperative, hostileTerms, coopT
           : cooperative > hostile ? "it tips towards the cooperative side" : "it settles level"}.`} />
       {tip.item !== null && <div className="tooltip view3d-tip" ref={tip.ref}>{tip.item}</div>}
       <div className="row balance3d-bar">
-        <button type="button" className="btn small" onClick={() => setRun(run + 1)}>Weigh again</button>
+        <button type="button" className="btn small" onClick={() => setRun(run + 1)}>Replay</button>
         <span className="small muted">
           {hostile + cooperative === 0 ? "No dictionary words found."
             : `Each block is ${unit === 1 ? "one word" : `${unit} words`}.`} The needle shows the tone balance

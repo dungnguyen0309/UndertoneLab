@@ -22,9 +22,9 @@ export function ListenBar({ speech, what, barRef }: { speech: Speech; what: stri
     <div className="listen" role="group" aria-label={`Listen to ${what}`} ref={barRef}>
       <div className="listen-main">
         {status === "playing" ? (
-          <button type="button" className="btn primary" onClick={speech.pause}><PauseIcon /> Pause</button>
+          <button type="button" className="btn" onClick={speech.pause}><PauseIcon /> Pause</button>
         ) : (
-          <button type="button" className="btn primary" onClick={() => speech.play()} disabled={!total}>
+          <button type="button" className="btn" onClick={() => speech.play()} disabled={!total}>
             <PlayIcon /> {status === "paused" ? "Resume" : "Listen"}
           </button>
         )}
@@ -80,14 +80,14 @@ export function MiniPlayer({ speech, anchor, what }: {
   return createPortal(
     <div className="mini-player" role="group" aria-label={`Reading ${what} aloud`}>
       {status === "playing" ? (
-        <button type="button" className="btn small primary" onClick={speech.pause}><PauseIcon /> Pause</button>
+        <button type="button" className="btn small" onClick={speech.pause}><PauseIcon /> Pause</button>
       ) : (
-        <button type="button" className="btn small primary" onClick={() => speech.play()}><PlayIcon /> Resume</button>
+        <button type="button" className="btn small" onClick={() => speech.play()}><PlayIcon /> Resume</button>
       )}
       <button type="button" className="btn small" onClick={speech.stop}><StopIcon /> Stop</button>
       <span className="listen-count">{(current + 1).toLocaleString("en")} / {total.toLocaleString("en")}</span>
     </div>,
-    document.body,
+    document.getElementById("overlays") ?? document.body,
   );
 }
 

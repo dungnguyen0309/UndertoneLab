@@ -58,6 +58,52 @@ describe("AnalyzePage", () => {
     await user.type(screen.getByRole("textbox", { name: "Text" }), "Hi.");
     await user.click(screen.getByRole("button", { name: "Analyze" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The text is too short.");
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();     // the same text fails the same way
+  });
+
+  it("offers Try again when the server fails, and sends the text again", async () => {
+    let failing = true;
+    const calls = mockFetch({
+      "/api/analyze": () => (failing ? { status: 503, body: { detail: "The server is busy." } } : { body: RESULT }),
+    });
+    const user = userEvent.setup();
+    wrap(<AnalyzePage />);
+    await user.click(screen.getByRole("button", { name: "Use sample text" }));
+    await user.click(screen.getByRole("button", { name: "Analyze" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The server is busy.");
+    failing = false;
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByTestId("baseline-sentence")).toBeInTheDocument();
+    expect(calls.filter((c) => c.url.startsWith("/api/analyze"))).toHaveLength(2);
+  });
+
+  it("keeps the text and the result when the page is opened again", async () => {
+    mockFetch({ "/api/analyze": () => ({ body: RESULT }) });
+    const user = userEvent.setup();
+    const first = wrap(<AnalyzePage />);
+    await user.click(screen.getByRole("button", { name: "Use sample text" }));
+    await user.click(screen.getByRole("button", { name: "Analyze" }));
+    await screen.findByTestId("baseline-sentence");
+    first.unmount();                                  // another page in the menu, or a reload
+
+    wrap(<AnalyzePage />);
+    expect(screen.getByRole("textbox", { name: "Text" })).toHaveValue(SAMPLE_TEXT);
+    expect(screen.getByTestId("baseline-sentence")).toBeInTheDocument();
+  });
+
+  it("drops a kept result once the dictionaries have changed, but keeps the text", async () => {
+    mockFetch({ "/api/analyze": () => ({ body: RESULT }) });
+    const user = userEvent.setup();
+    const first = wrap(<AnalyzePage />);
+    await user.click(screen.getByRole("button", { name: "Use sample text" }));
+    await user.click(screen.getByRole("button", { name: "Analyze" }));
+    await screen.findByTestId("baseline-sentence");
+    first.unmount();
+    storage.saveDictionaries({ hostile: ["foo"], cooperative: ["bar"] });   // edited on the dictionaries page
+
+    wrap(<AnalyzePage />);
+    expect(screen.getByRole("textbox", { name: "Text" })).toHaveValue(SAMPLE_TEXT);
+    expect(screen.queryByTestId("baseline-sentence")).toBeNull();
   });
 
   it("asks for text before calling the server", async () => {

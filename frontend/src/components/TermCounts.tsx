@@ -55,7 +55,7 @@ export default function TermCounts() {
         In the {statements.toLocaleString("en")} UN General Debate statements, {first_year}–{last_year}, for the
         default lists. A word ending in * counts every ending; a phrase is counted once, not also as its last word.
       </p>
-      <div className="table-wrap tall" tabIndex={0} role="region" aria-label="Dictionary words and how often they occur">
+      <div className="table-wrap tall narrow" tabIndex={0} role="region" aria-label="Dictionary words and how often they occur">
         <table>
           <thead>
             <tr>
